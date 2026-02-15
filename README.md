@@ -14,6 +14,8 @@ cd exploratory-search-viz
 ```
 
 ### 2. Setup the Backend
+Collect `.env` file from the author.
+
 Open a terminal window:
 ```bash
 cd exploratory-search-backend
@@ -37,7 +39,7 @@ To keep the `main` branch stable, please work on a dedicated branch for your vie
 
 1. **Create your branch:** `git checkout -b feature/your-view-name`
 
-2. **Save your work:** `git add .`
+2. **Save your work:** `git add .`, and then 
 `git commit -m "added new view component"`
 
 3. **Push to GitHub:** `git push origin feature/your-view-name`
