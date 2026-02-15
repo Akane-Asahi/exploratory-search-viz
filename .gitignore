@@ -1,0 +1,4 @@
+node_modules/
+exploratory-search-frontend/node_modules/
+exploratory-search-backend/node_modules/
+.env
