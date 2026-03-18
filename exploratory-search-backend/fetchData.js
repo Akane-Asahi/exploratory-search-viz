@@ -91,9 +91,16 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
     console.log(`📡 Starting ${normalizedMode} fetch for: "${searchTerm}"`);
 
     const toPaperDocs = (works) => works.reduce((docs, work) => {
-      const allConcepts = (work.concepts || []).filter((c) => c.level >= 2);
-      const containsExcludedDomain = allConcepts.some((c) => hasExcludedDomainAncestor(c));
-      if (containsExcludedDomain) return docs;
+      const allConcepts = (work.concepts || [])
+        .filter((c) => c.level >= 2)
+        .map((c) => ({
+          name: c.display_name,
+          level: c.level,
+          score: c.score,
+          ancestors: (c.ancestors || [])
+            .map((a) => a?.display_name || a?.name || "")
+            .filter(Boolean)
+        }));
 
       const csConcepts = (work.concepts || [])
         .filter((c) => c.level >= 2 && hasComputerScienceAncestor(c))
@@ -106,8 +113,10 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
             .filter(Boolean)
         }));
 
-      // Keep only papers that contain at least one computer-science concept.
-      if (csConcepts.length === 0) return docs;
+      // Prefer CS concepts when present, but fall back to general level>=2 concepts
+      // so queries outside strict CS taxonomy still return papers.
+      const selectedConcepts = csConcepts.length > 0 ? csConcepts : allConcepts;
+      if (selectedConcepts.length === 0) return docs;
 
       docs.push({
         openAlexId: work.id || "",
@@ -136,7 +145,7 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
         keywords: (work.keywords || [])
           .map((k) => k?.display_name || k?.keyword || "")
           .filter(Boolean),
-        concepts: csConcepts
+        concepts: selectedConcepts
       });
 
       return docs;
@@ -169,8 +178,13 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
       report(totalSaved, "fetching");
     } else {
       let nextCursor = "*";
+      let emptyPageStreak = 0;
+      let scannedPages = 0;
+      const maxScannedPages = 120;
+      const maxEmptyStreak = 15;
 
       while (nextCursor) {
+        scannedPages += 1;
         const response = await axiosWithRetry({
           method: "get",
           url: "https://api.openalex.org/works",
@@ -188,13 +202,26 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
         if (!works || works.length === 0) break;
 
         const pagePapers = toPaperDocs(works);
-        await Paper.insertMany(pagePapers);
+        if (pagePapers.length > 0) {
+          await Paper.insertMany(pagePapers);
+          emptyPageStreak = 0;
+        } else {
+          emptyPageStreak += 1;
+        }
         totalSaved += pagePapers.length;
-        console.log(`✅ Saved ${totalSaved} papers...`);
+        console.log(`✅ Saved ${totalSaved} papers... (page ${scannedPages})`);
         report(totalSaved, "fetching");
 
         nextCursor = response.data.meta.next_cursor;
         if (totalSaved >= effectiveTotal) break;
+        if (scannedPages >= maxScannedPages) {
+          console.log(`⏹️ Stopping early after ${scannedPages} pages (max scan limit reached).`);
+          break;
+        }
+        if (totalSaved === 0 && emptyPageStreak >= maxEmptyStreak) {
+          console.log(`⏹️ Stopping early after ${emptyPageStreak} empty pages (no qualifying papers found).`);
+          break;
+        }
       }
     }
 
