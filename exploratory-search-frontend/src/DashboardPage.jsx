@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import TopicChart from './TopicChart';
 import PaperForceGraph from './PaperForceGraph';
+import BarGraph from './Bargraph'
+import WordCloud from './WordCloud'
 
 const font = "'Consolas', monospace";
 
@@ -62,7 +64,7 @@ function DashboardPage({ searchTerm, onNewSearch }) {
   const [paperNetwork, setPaperNetwork] = useState({ nodes: [], links: [] });
   const [topPapers, setTopPapers] = useState([]);
   const [isSyncing, setIsSyncing] = useState(true);
-
+  const [topKeywords, setTopKeywords] = useState([]);
   const pollInterval = useRef(null);
 
   const fetchData = useCallback(async () => {
@@ -75,10 +77,10 @@ function DashboardPage({ searchTerm, onNewSearch }) {
         if (pollInterval.current) clearInterval(pollInterval.current);
 
         const [resEvo, resTerminology, resNetwork, resTopPapers] = await Promise.allSettled([
-          axios.get('/api/topic-timeline?limit=8'),
-          axios.get('/api/terminology'),
-          axios.get('/api/paper-network?limit=20'),
-          axios.get('/api/top-cited?limit=20')
+          axios.get('http://localhost:5000/api/topic-timeline?limit=8'),
+          axios.get('http://localhost:5000/api/terminology'),
+          axios.get('http://localhost:5000/api/paper-network?limit=20'),
+          axios.get('http://localhost:5000/api/top-cited?limit=20')
         ]);
 
         if (resEvo.status === 'fulfilled') {
@@ -96,6 +98,8 @@ function DashboardPage({ searchTerm, onNewSearch }) {
         }
         if (resTopPapers.status === 'fulfilled') {
           setTopPapers(Array.isArray(resTopPapers.value.data) ? resTopPapers.value.data : []);
+        }if (resKeywords.status === 'fulfilled') {
+          setTopKeywords(Array.isArray(resKeywords.value.data) ? resKeywords.value.data : []);
         }
       }
     } catch (err) {
@@ -208,21 +212,41 @@ function DashboardPage({ searchTerm, onNewSearch }) {
                 {evolutionData?.data?.length > 0 ? <TopicChart rawData={evolutionData} /> : <p style={{ fontFamily: font }}>Waiting for data...</p>}
               </div>
             </div>
-          </div>
 
-          <div style={{ ...panelStyle, flex: 1, height: '640px' }}>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
-              Paper Connection Force Graph (Top 20 by Citations)
-            </p>
-            <div style={{ height: '588px' }}>
-              {paperNetwork.nodes.length > 0 ? (
-                <PaperForceGraph data={paperNetwork} />
-              ) : (
-                <p style={{ fontFamily: font }}>Waiting for paper network...</p>
-              )}
+              <div style={{ ...panelStyle, flex: 1 ,height: '315px' }}>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
+                  Most Comman topics
+                </p>
+                <div style={{ height: '250px' }}>
+                  {topKeywords?.length > 0 ? <WordCloud rawData={topKeywords} /> : <p style={{ fontFamily: font }}>Waiting for data...</p>}
+                </div>
+              </div>
+            
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' , gap: '10px', alignItems: 'stretch', flex: '1' }} >
+            <div style={{ ...panelStyle, flex: 1.75, height: '1000px' }}>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
+                Paper Connection Force Graph (Top 20 by Citations)
+              </p>
+              <div style={{ height: '588px' }}>
+                {paperNetwork.nodes.length > 0 ? (
+                  <PaperForceGraph data={paperNetwork} />
+                ) : (
+                  <p style={{ fontFamily: font }}>Waiting for paper network...</p>
+                )}
+              </div>
+              
+            </div>
+            <div style={{ ...panelStyle, flex: 1 ,height: '315px' }}>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
+                  Most Comman topics
+                </p>
+                <div style={{ height: '250px' }}>
+                  {topKeywords?.length > 0 ? <BarGraph rawData={topKeywords} /> : <p style={{ fontFamily: font }}>Waiting for data...</p>}
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
         <div style={{ ...panelStyle }}>
           <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '18px', margin: '0 0 10px 0' }}>Top Papers</p>

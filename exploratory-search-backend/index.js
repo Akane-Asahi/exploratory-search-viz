@@ -43,11 +43,25 @@ app.get("/api/top-cited", async (req, res) => {
 // 3. Top Concepts (General Overview)
 app.get("/api/concepts", async (req, res) => {
   try {
+    
     const data = await Paper.aggregate([
       { $unwind: "$concepts" },
       { $group: { _id: "$concepts.name", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 15 }
+    ]);
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get("/api/keywords", async (req, res) => {
+  try {
+    const limit = Math.min(50, Math.max(5, parseInt(req.query.limit, 10) || 20));
+    const data = await Paper.aggregate([
+      { $unwind: "$keywords" },
+      { $group: { _id: "$keywords", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: limit}
     ]);
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
@@ -59,7 +73,7 @@ app.get("/api/concept-evolution", async (req, res) => {
     const data = await Paper.aggregate([
       { $unwind: "$concepts" },
       { $match: { "concepts.name": { $in: ["Information retrieval", "Human–computer interaction", "Semantic search", "World Wide Web", "Information seeking"] } } },
-      { $group: { 
+      { $group: {  
           _id: { year: "$year", concept: "$concepts.name" }, 
           count: { $sum: 1 } 
       }},

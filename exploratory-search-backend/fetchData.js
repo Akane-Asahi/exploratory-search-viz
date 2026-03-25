@@ -76,7 +76,7 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
   const report = (saved, status, error) => {
     if (onProgress) onProgress({ saved, total: effectiveTotal, status, error: error || null });
   };
-
+  
   try {
     if (mongoose.connection.readyState !== 1) {
       await mongoose.connect(process.env.MONGO_URI);
@@ -91,19 +91,12 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
     console.log(`📡 Starting ${normalizedMode} fetch for: "${searchTerm}"`);
 
     const toPaperDocs = (works) => works.reduce((docs, work) => {
-      const allConcepts = (work.concepts || [])
-        .filter((c) => c.level >= 2)
-        .map((c) => ({
-          name: c.display_name,
-          level: c.level,
-          score: c.score,
-          ancestors: (c.ancestors || [])
-            .map((a) => a?.display_name || a?.name || "")
-            .filter(Boolean)
-        }));
+      const allConcepts = (work.concepts || []).filter((c) => c.level >= 2);
+      const containsExcludedDomain = allConcepts.some((c) => hasExcludedDomainAncestor(c));
+      if (containsExcludedDomain) return docs;
 
       const csConcepts = (work.concepts || [])
-        .filter((c) => c.level >= 3 && hasComputerScienceAncestor(c))
+        .filter((c) => c.level >= 2 && hasComputerScienceAncestor(c))
         .map((c) => ({
           name: c.display_name,
           level: c.level,
@@ -113,10 +106,8 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
             .filter(Boolean)
         }));
 
-      // Prefer CS concepts when present, but fall back to general level>=2 concepts
-      // so queries outside strict CS taxonomy still return papers.
-      const selectedConcepts = csConcepts.length > 0 ? csConcepts : allConcepts;
-      if (selectedConcepts.length === 0) return docs;
+      // Keep only papers that contain at least one computer-science concept.
+      if (csConcepts.length === 0) return docs;
 
       docs.push({
         openAlexId: work.id || "",
@@ -150,7 +141,7 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
 
       return docs;
     }, []);
-
+    console.log("Normalized mode ", normalizedMode);
     if (normalizedMode === "semantic") {
       const response = await axiosWithRetry({
         method: "get",
@@ -165,6 +156,8 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
         },
         timeout: 60000
       });
+      console.log("Total results:", response.data.meta.count);
+      console.log("First result:", JSON.stringify(response.data.results[0], null, 2));
 
       const works = (response.data.results || []).filter(
         (work) => (work.publication_year || 0) >= 2010
@@ -199,19 +192,13 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
         });
 
         const works = response.data.results;
+        
         if (!works || works.length === 0) break;
 
         const pagePapers = toPaperDocs(works);
-        const remaining = Math.max(0, effectiveTotal - totalSaved);
-        const papersToSave = pagePapers.slice(0, remaining);
-        if (papersToSave.length > 0) {
-          await Paper.insertMany(papersToSave);
-          emptyPageStreak = 0;
-        } else {
-          emptyPageStreak += 1;
-        }
-        totalSaved += papersToSave.length;
-        console.log(`✅ Saved ${totalSaved} papers... (page ${scannedPages})`);
+        await Paper.insertMany(pagePapers);
+        totalSaved += pagePapers.length;
+        console.log(`✅ Saved ${totalSaved} papers...`);
         report(totalSaved, "fetching");
 
         nextCursor = response.data.meta.next_cursor;

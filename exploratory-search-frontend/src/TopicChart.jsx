@@ -39,8 +39,7 @@ const TopicChart = ({ rawData }) => {
     // Clear and set up SVG
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
-    svg
-      .attr("width", width)
+    svg.attr("width", width)
       .attr("height", height)
       .attr("viewBox", [0, 0, width, height])
       .attr("style", "max-width: 100%; height: auto; overflow: visible; font: 8px Inter, sans-serif;");
