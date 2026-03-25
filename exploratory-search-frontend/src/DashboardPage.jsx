@@ -67,7 +67,7 @@ function DashboardPage({ searchTerm, onNewSearch }) {
 
   const fetchData = useCallback(async () => {
     try {
-      const resStats = await axios.get('http://localhost:5000/api/dashboard-stats');
+      const resStats = await axios.get('/api/dashboard-stats');
       setStats(resStats.data);
 
       if (resStats.data.totalPapers > 0) {
@@ -75,10 +75,10 @@ function DashboardPage({ searchTerm, onNewSearch }) {
         if (pollInterval.current) clearInterval(pollInterval.current);
 
         const [resEvo, resTerminology, resNetwork, resTopPapers] = await Promise.allSettled([
-          axios.get('http://localhost:5000/api/topic-timeline?limit=8'),
-          axios.get('http://localhost:5000/api/terminology'),
-          axios.get('http://localhost:5000/api/paper-network?limit=20'),
-          axios.get('http://localhost:5000/api/top-cited?limit=20')
+          axios.get('/api/topic-timeline?limit=8'),
+          axios.get('/api/terminology'),
+          axios.get('/api/paper-network?limit=20'),
+          axios.get('/api/top-cited?limit=20')
         ]);
 
         if (resEvo.status === 'fulfilled') {

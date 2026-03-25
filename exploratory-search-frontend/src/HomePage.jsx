@@ -56,7 +56,7 @@ function HomePage({ onSearchComplete }) {
   const startPolling = () => {
     pollRef.current = setInterval(async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/fetch-status');
+        const res = await axios.get('/api/fetch-status');
         const p = res.data;
         setProgress(p);
 
@@ -89,7 +89,7 @@ function HomePage({ onSearchComplete }) {
     termRef.current = term;
 
     try {
-      await axios.post('http://localhost:5000/api/trigger-fetch',
+      await axios.post('/api/trigger-fetch',
         { searchTerm: term, totalPapers: paperCount, searchMode },
         { timeout: 10000 }
       );

@@ -183,7 +183,7 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
       const maxScannedPages = 120;
       const maxEmptyStreak = 15;
 
-      while (nextCursor) {
+      while (nextCursor && totalSaved < effectiveTotal) {
         scannedPages += 1;
         const response = await axiosWithRetry({
           method: "get",
@@ -202,13 +202,15 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
         if (!works || works.length === 0) break;
 
         const pagePapers = toPaperDocs(works);
-        if (pagePapers.length > 0) {
-          await Paper.insertMany(pagePapers);
+        const remaining = Math.max(0, effectiveTotal - totalSaved);
+        const papersToSave = pagePapers.slice(0, remaining);
+        if (papersToSave.length > 0) {
+          await Paper.insertMany(papersToSave);
           emptyPageStreak = 0;
         } else {
           emptyPageStreak += 1;
         }
-        totalSaved += pagePapers.length;
+        totalSaved += papersToSave.length;
         console.log(`✅ Saved ${totalSaved} papers... (page ${scannedPages})`);
         report(totalSaved, "fetching");
 
