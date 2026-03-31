@@ -54,6 +54,86 @@ app.get("/api/concepts", async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.get("/api/yearly-citations/:id", async (req, res) => {
+  try {
+    
+    const paper = await Paper.findById(req.params.id);
+    if (!paper) return res.status(404).json({ error: "Paper not found" });
+
+    const currentYear = new Date().getFullYear();
+    const startYear = paper.year || 2000;
+    const map = new Map((paper.citationsByYear || []).map(d => [d.year, d.count]));
+
+    const filled = [];
+    for (let year = startYear; year <= currentYear; year++) {
+      filled.push({ year, count: map.get(year) ?? 0 });
+    }
+
+    res.json(filled);
+  } catch (err) { 
+    res.status(500).json({ error: err.message }); 
+  }
+});
+
+app.get("/api/closest-papers/:id", async (req, res) => {
+  try {
+    console.log(req.params.id);
+    const paper = await Paper.findById(req.params.id);
+    
+    const paperConcepts = paper.concepts.map(c => ({ name: c.name, level: c.level }));
+    const paperConceptNames = paperConcepts.map(c => c.name);
+
+    const data = await Paper.aggregate([
+      { $addFields: {
+        sharedConceptScore: {
+          $sum: {
+            $map: {
+              input: {
+                $filter: {
+                  input: "$concepts",
+                  as: "concept",
+                  cond: { $in: ["$$concept.name", paperConceptNames] }
+                }
+              },
+              as: "matched",
+              in: {
+                $multiply: [
+                  "$$matched.level",  
+                  {
+                    $let: {
+                      vars: {
+                        
+                        sourceConcept: {
+                          $arrayElemAt: [
+                            { $filter: {
+                              input: paperConcepts,  
+                              as: "pc",
+                              cond: { $eq: ["$$pc.name", "$$matched.name"] }
+                            }},
+                            0
+                          ]
+                        }
+                      },
+                      in: "$$sourceConcept.level"  
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }},
+      { $match: { sharedConceptScore: { $gt: 0 } } },
+      { $sort: { sharedConceptScore: -1 } },
+      { $limit: 15}
+    ]);
+    
+    res.json(data);
+    } catch (err) { 
+      res.status(500).json({ error: err.message }); 
+    }
+    });
+
 app.get("/api/keywords", async (req, res) => {
   try {
     const limit = Math.min(50, Math.max(5, parseInt(req.query.limit, 10) || 20));

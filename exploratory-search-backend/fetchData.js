@@ -45,6 +45,10 @@ const paperSchema = new mongoose.Schema({
     level: Number, 
     score: Number,
     ancestors: [String]
+  }],
+  citationsByYear: [{
+    year: Number,
+    count: Number
   }]
 });
 
@@ -96,7 +100,7 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
       if (containsExcludedDomain) return docs;
 
       const csConcepts = (work.concepts || [])
-        .filter((c) => c.level >= 2 && hasComputerScienceAncestor(c))
+        .filter((c) => c.level >= 3 /*&& hasComputerScienceAncestor(c)*/)
         .map((c) => ({
           name: c.display_name,
           level: c.level,
@@ -115,6 +119,7 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
           work.primary_location?.landing_page_url ||
           work.primary_location?.source?.homepage_url ||
           "",
+        
         doi: work.doi || "",
         title: work.display_name,
         year: work.publication_year,
@@ -136,7 +141,12 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
         keywords: (work.keywords || [])
           .map((k) => k?.display_name || k?.keyword || "")
           .filter(Boolean),
-        concepts: selectedConcepts
+        concepts: csConcepts ,
+        citationsByYear: (work.counts_by_year || []).map(a => ({
+          year: a?.year,
+          count: a?.cited_by_count
+        })),
+        
       });
 
       return docs;
