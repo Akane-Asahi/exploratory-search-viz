@@ -5,7 +5,6 @@ function PaperForceGraph({ data }) {
   const wrapperRef = useRef(null);
   const [size, setSize] = useState({ width: 640, height: 640 });
   const [hoveredNodeId, setHoveredNodeId] = useState(null);
-  const [pinnedNodeId, setPinnedNodeId] = useState(null);
   const [layout, setLayout] = useState({ nodes: [], links: [] });
 
   useEffect(() => {
@@ -91,11 +90,8 @@ function PaperForceGraph({ data }) {
     return () => simulation.stop();
   }, [baseNodes, baseLinks, size.width, size.height, radiusScale, targetPositions]);
 
-  const tooltipNode =
-    layout.nodes.find((n) => n.id === pinnedNodeId) ||
-    layout.nodes.find((n) => n.id === hoveredNodeId) ||
-    null;
-  const activeNodeId = pinnedNodeId || hoveredNodeId;
+  const tooltipNode = layout.nodes.find((n) => n.id === hoveredNodeId) || null;
+  const activeNodeId = hoveredNodeId;
   const connectedNodeIds = useMemo(() => {
     if (!activeNodeId) return new Set();
     const set = new Set([activeNodeId]);
@@ -125,7 +121,7 @@ function PaperForceGraph({ data }) {
                 x2={link.target?.x || 0}
                 y2={link.target?.y || 0}
                 stroke={isConnectedToActive ? '#1d4ed8' : '#94a3b8'}
-                strokeOpacity={activeNodeId ? (isConnectedToActive ? 0.9 : 0.12) : 0.35}
+                strokeOpacity={activeNodeId ? (isConnectedToActive ? 0.9 : 0) : 0}
                 strokeWidth={Math.min(3, 0.8 + (link.weight || 1) * 0.35)}
               />
             );
@@ -134,7 +130,6 @@ function PaperForceGraph({ data }) {
         <g>
           {layout.nodes.map((node) => {
             const r = radiusScale(Number(node.citationCount || 0));
-            const isPinned = pinnedNodeId === node.id;
             const isConnected = connectedNodeIds.has(node.id);
             const inactive = !!activeNodeId && !isConnected;
             const activeOrConnected = !!activeNodeId && isConnected;
@@ -146,13 +141,12 @@ function PaperForceGraph({ data }) {
                     inactive
                       ? '#e5e7eb'
                       : activeOrConnected
-                        ? (isPinned ? '#1d4ed8' : '#2563eb')
+                        ? '#2563eb'
                         : '#cbd5e1'
                   }
-                  fillOpacity={inactive ? 0.2 : (activeOrConnected ? (isPinned ? 0.95 : 0.85) : 0.92)}
+                  fillOpacity={inactive ? 0.2 : (activeOrConnected ? 0.85 : 0.92)}
                   stroke={activeOrConnected ? '#1e3a8a' : '#94a3b8'}
                   strokeWidth={activeOrConnected ? 1.2 : 0.9}
-                  onClick={() => setPinnedNodeId((prev) => (prev === node.id ? null : node.id))}
                   onMouseEnter={() => setHoveredNodeId(node.id)}
                   onMouseLeave={() => setHoveredNodeId(null)}
                   style={{ cursor: 'pointer' }}

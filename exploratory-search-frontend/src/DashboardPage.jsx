@@ -191,7 +191,7 @@ function DashboardPage({ searchTerm, onNewSearch }) {
                     {topTerminologies.length === 0 && (
                       <tr>
                         <td colSpan={3} style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280', padding: '12px', textAlign: 'center' }}>
-                          Waiting for terminology extraction...
+                          {isSyncing ? 'Waiting for terminology extraction...' : 'No terminology data found for this search.'}
                         </td>
                       </tr>
                     )}

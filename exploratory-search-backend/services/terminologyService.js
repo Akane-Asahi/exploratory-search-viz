@@ -51,17 +51,25 @@ function computeNicheScore(totalScore, count) {
   return totalScore / Math.log(count + 1);
 }
 
-function isDomainRelevant(concept) {
-  const ancestors = (concept?.ancestors || [])
+function getNormalizedAncestors(concept) {
+  return (concept?.ancestors || [])
     .map((a) => normalize(a))
     .filter(Boolean);
+}
+
+function hasExcludedAncestor(concept) {
+  const ancestors = getNormalizedAncestors(concept);
+  return ancestors.some((ancestor) =>
+    EXCLUDED_ANCESTOR_TERMS.some((blocked) => ancestor.includes(blocked))
+  );
+}
+
+function isDomainRelevant(concept) {
+  const ancestors = getNormalizedAncestors(concept);
 
   if (ancestors.length === 0) return false;
 
-  const hasExcludedAncestor = ancestors.some((ancestor) =>
-    EXCLUDED_ANCESTOR_TERMS.some((blocked) => ancestor.includes(blocked))
-  );
-  if (hasExcludedAncestor) return false;
+  if (hasExcludedAncestor(concept)) return false;
 
   const hasAllowedAncestor = ancestors.some((ancestor) =>
     ALLOWED_ANCESTOR_TERMS.some((allowed) => ancestor.includes(allowed))
@@ -71,10 +79,29 @@ function isDomainRelevant(concept) {
 
 async function getTopTerminologies(limit = TOP_TERMS_LIMIT) {
   const papers = await Paper.find({}, { concepts: 1, year: 1 }).lean();
-  const stats = new Map();
+  const strictStats = new Map();
+  const fallbackStats = new Map();
   const currentYear = new Date().getFullYear();
   const minTrendYear = currentYear - (TREND_WINDOW_YEARS - 1);
   const yearRange = Array.from({ length: TREND_WINDOW_YEARS }, (_, i) => minTrendYear + i);
+
+  const applyConceptToStats = (statsMap, name, conceptScore, year) => {
+    if (!statsMap.has(name)) {
+      statsMap.set(name, {
+        name,
+        totalScore: 0,
+        count: 0,
+        trendByYear: yearRange.reduce((acc, y) => ({ ...acc, [y]: 0 }), {})
+      });
+    }
+
+    const entry = statsMap.get(name);
+    entry.totalScore += Number(conceptScore || 0);
+    entry.count += 1;
+    if (year >= minTrendYear && year <= currentYear) {
+      entry.trendByYear[year] += 1;
+    }
+  };
 
   papers.forEach((paper) => {
     const year = Number(paper?.year || 0);
@@ -82,28 +109,22 @@ async function getTopTerminologies(limit = TOP_TERMS_LIMIT) {
     (paper.concepts || []).forEach((concept) => {
       const name = (concept?.name || "").trim();
       if (!name) return;
-      if (!isDomainRelevant(concept)) return;
       if (BLACKLIST.has(name.toLowerCase())) return;
 
-      if (!stats.has(name)) {
-        stats.set(name, {
-          name,
-          totalScore: 0,
-          count: 0,
-          trendByYear: yearRange.reduce((acc, y) => ({ ...acc, [y]: 0 }), {})
-        });
+      // Strict mode keeps CS-only terminology quality high.
+      if (isDomainRelevant(concept)) {
+        applyConceptToStats(strictStats, name, concept?.score, year);
       }
 
-      const entry = stats.get(name);
-      entry.totalScore += Number(concept?.score || 0);
-      entry.count += 1;
-      if (year >= minTrendYear && year <= currentYear) {
-        entry.trendByYear[year] += 1;
+      // Fallback avoids an empty ranked table when strict ancestors are sparse.
+      if (!hasExcludedAncestor(concept)) {
+        applyConceptToStats(fallbackStats, name, concept?.score, year);
       }
     });
   });
 
-  const scored = Array.from(stats.values()).map((entry) => ({
+  const chosenStats = strictStats.size > 0 ? strictStats : fallbackStats;
+  const scored = Array.from(chosenStats.values()).map((entry) => ({
     ...entry,
     nicheScore: computeNicheScore(entry.totalScore, entry.count)
   }));

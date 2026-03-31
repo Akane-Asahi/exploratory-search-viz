@@ -103,7 +103,7 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
         }));
 
       const csConcepts = (work.concepts || [])
-        .filter((c) => c.level >= 2 && hasComputerScienceAncestor(c))
+        .filter((c) => c.level >= 3 && hasComputerScienceAncestor(c))
         .map((c) => ({
           name: c.display_name,
           level: c.level,
