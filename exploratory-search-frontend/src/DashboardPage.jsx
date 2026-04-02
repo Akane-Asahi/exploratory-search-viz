@@ -57,7 +57,7 @@ function TrendSparkline({ values }) {
   );
 }
 
-function DashboardPage({ searchTerm, onNewSearch,onSelectPaper }) {
+function DashboardPage({ searchTerm, onNewSearch }) {
   const [stats, setStats] = useState(null);
   const [evolutionData, setEvolutionData] = useState([]);
   const [topTerminologies, setTopTerminologies] = useState([]);
@@ -76,11 +76,12 @@ function DashboardPage({ searchTerm, onNewSearch,onSelectPaper }) {
         setIsSyncing(false);
         if (pollInterval.current) clearInterval(pollInterval.current);
 
-        const [resEvo, resTerminology, resNetwork, resTopPapers] = await Promise.allSettled([
+        const [resEvo, resTerminology, resNetwork, resTopPapers,resKeywords] = await Promise.allSettled([
           axios.get('http://localhost:5000/api/topic-timeline?limit=8'),
-          axios.get('http://localhost:5000/api/terminology'),
+          axios.get('http://localhost:5000/api/terminology'), 
           axios.get('http://localhost:5000/api/paper-network?limit=20'),
-          axios.get('http://localhost:5000/api/top-cited?limit=20')
+          axios.get('http://localhost:5000/api/top-cited?limit=20'),
+          axios.get('http://localhost:5000/api/keywords?limit=100')
         ]);
 
         if (resEvo.status === 'fulfilled') {
@@ -269,18 +270,16 @@ function DashboardPage({ searchTerm, onNewSearch,onSelectPaper }) {
                     ? (doiValue.startsWith('http') ? doiValue : `https://doi.org/${doiValue}`)
                     : '';
                   const link = normalizedDoiLink || paper.openAlexUrl || paper.openAlexId || '';
-                  
                   return (
                     <tr key={paper._id || `${paper.title}-${paper.citationCount}`}>
                       <td style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>
-                        
-                        <span
-                          onClick={() => onSelectPaper(paper)}
-                          style={{ color: '#2563eb', textDecoration: 'none', cursor: 'pointer' }}
-                        >
-                          {paper.title || 'Untitled'}
-                        </span>
-                        
+                        {link ? (
+                          <a href={link} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>
+                            {paper.title || 'Untitled'}
+                          </a>
+                        ) : (
+                          (paper.title || 'Untitled')
+                        )}
                       </td>
                       <td style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>
                         {paper.citationCount || 0}
