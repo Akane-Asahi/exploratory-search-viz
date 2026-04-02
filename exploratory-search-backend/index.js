@@ -80,7 +80,7 @@ app.get("/api/closest-papers/:id", async (req, res) => {
     console.log(req.params.id);
     const paper = await Paper.findById(req.params.id);
     
-    const paperConcepts = paper.concepts.map(c => ({ name: c.name, level: c.level }));
+    const paperConcepts = paper.concepts.map(c => ({ name: c.name, score: c.score}));
     const paperConceptNames = paperConcepts.map(c => c.name);
 
     const data = await Paper.aggregate([
@@ -98,7 +98,7 @@ app.get("/api/closest-papers/:id", async (req, res) => {
               as: "matched",
               in: {
                 $multiply: [
-                  "$$matched.level",  
+                  "$$matched.score",  
                   {
                     $let: {
                       vars: {
@@ -114,7 +114,7 @@ app.get("/api/closest-papers/:id", async (req, res) => {
                           ]
                         }
                       },
-                      in: "$$sourceConcept.level"  
+                      in: "$$sourceConcept.score"  
                     }
                   }
                 ]

@@ -232,7 +232,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch  }) {
             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, backgroundColor: '#fff', border: '1px solid #eeeff0', borderRadius: '10px', overflow: 'hidden' }}>
               <thead>
                 <tr style={{ backgroundColor: '#f9fafb' }}>
-                  {['Title', 'Citations', 'Published', 'Total Authors'].map((h) => (
+                  {['Title', 'Citations', 'Published', 'Total Authors','Score'].map((h) => (
                     <th key={h} style={{ textAlign: 'left', fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 500, color: '#111827', padding: '10px 12px', borderBottom: '1px solid #eeeff0' }}>
                       {h}
                     </th>
@@ -247,6 +247,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch  }) {
                     ? (doiValue.startsWith('http') ? doiValue : `https://doi.org/${doiValue}`)
                     : '';
                   const link = normalizedDoiLink || paper.openAlexUrl || paper.openAlexId || '';
+                  const score = (paper.sharedConceptScore * 100 || 0 ).toFixed(2);
                   return (
                     <tr key={paper._id || `${paper.title}-${paper.citationCount}`}>
                       <td style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>
@@ -269,6 +270,9 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch  }) {
                         style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0', cursor: 'help' }}
                       >
                         {authors.length}
+                      </td>
+                      <td style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>
+                        {score || 'Unknown Score'}
                       </td>
                     </tr>
                   );

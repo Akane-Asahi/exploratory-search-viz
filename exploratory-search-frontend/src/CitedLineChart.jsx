@@ -14,7 +14,7 @@ function CitedLineChart({ rawData }) {
     const marginBottom = 40;
     const marginLeft = 200;
     const width = 928;
-    const height = 300;
+    const height = 350;
 
     // Flatten and sort by count ascending (so highest is at top)
     const flatData = rawData
@@ -31,7 +31,7 @@ function CitedLineChart({ rawData }) {
 
     
     const y = d3.scaleLinear()
-      .domain([ d3.max(flatData, d => d.count),0])
+      .domain([0, d3.max(flatData, d => d.count)])
       .range([height - marginBottom, marginTop])
       
 
