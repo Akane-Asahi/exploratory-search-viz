@@ -74,6 +74,7 @@ async function axiosWithRetry(config, retries = 3) {
 
 async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, searchMode = "semantic") {
   if (!searchTerm) return { success: false, message: "No search term provided" };
+  
   const total = Math.min(10000, Math.max(100, totalPapers));
   const normalizedMode = searchMode === "keyword" ? "keyword" : "semantic";
   const effectiveTotal = normalizedMode === "semantic" ? Math.min(total, 50) : total;

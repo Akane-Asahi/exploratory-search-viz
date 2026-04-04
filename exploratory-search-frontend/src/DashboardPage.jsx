@@ -4,6 +4,7 @@ import TopicChart from './TopicChart';
 import PaperForceGraph from './PaperForceGraph';
 import BarGraph from './Bargraph'
 import WordCloud from './WordCloud'
+import AuthorBarChart from './AuthorBarChart'
 
 const font = "'Consolas', monospace";
 
@@ -57,7 +58,7 @@ function TrendSparkline({ values }) {
   );
 }
 
-function DashboardPage({ searchTerm, onNewSearch }) {
+function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper }) {
   const [stats, setStats] = useState(null);
   const [evolutionData, setEvolutionData] = useState([]);
   const [topTerminologies, setTopTerminologies] = useState([]);
@@ -65,6 +66,7 @@ function DashboardPage({ searchTerm, onNewSearch }) {
   const [topPapers, setTopPapers] = useState([]);
   const [isSyncing, setIsSyncing] = useState(true);
   const [topKeywords, setTopKeywords] = useState([]);
+  const [authors, setAuthors] = useState([]);
   const pollInterval = useRef(null);
 
   const fetchData = useCallback(async () => {
@@ -76,12 +78,13 @@ function DashboardPage({ searchTerm, onNewSearch }) {
         setIsSyncing(false);
         if (pollInterval.current) clearInterval(pollInterval.current);
 
-        const [resEvo, resTerminology, resNetwork, resTopPapers,resKeywords] = await Promise.allSettled([
+        const [resEvo, resTerminology, resNetwork, resTopPapers,resKeywords,resAuthors] = await Promise.allSettled([
           axios.get('http://localhost:5000/api/topic-timeline?limit=8'),
           axios.get('http://localhost:5000/api/terminology'), 
           axios.get('http://localhost:5000/api/paper-network?limit=20'),
           axios.get('http://localhost:5000/api/top-cited?limit=20'),
-          axios.get('http://localhost:5000/api/keywords?limit=100')
+          axios.get('http://localhost:5000/api/keywords?limit=100'),
+          axios.get('http://localhost:5000/api/authors')
         ]);
 
         if (resEvo.status === 'fulfilled') {
@@ -101,6 +104,8 @@ function DashboardPage({ searchTerm, onNewSearch }) {
           setTopPapers(Array.isArray(resTopPapers.value.data) ? resTopPapers.value.data : []);
         }if (resKeywords.status === 'fulfilled') {
           setTopKeywords(Array.isArray(resKeywords.value.data) ? resKeywords.value.data : []);
+        }if (resAuthors.status === 'fulfilled') {
+          setAuthors(Array.isArray(resAuthors.value.data) ? resAuthors.value.data : []);
         }
       }
     } catch (err) {
@@ -238,12 +243,12 @@ function DashboardPage({ searchTerm, onNewSearch }) {
               </div>
               
             </div>
-            <div style={{ ...panelStyle, flex: 1 ,height: '315px' }}>
+            <div style={{ ...panelStyle, flex: 1 ,height: '415px' }}>
                 <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
                   Most Comman topics
                 </p>
-                <div style={{ height: '250px' }}>
-                  {topKeywords?.length > 0 ? <BarGraph rawData={topKeywords} /> : <p style={{ fontFamily: font }}>Waiting for data...</p>}
+                <div style={{ height: '350px' }}>
+                  {authors?.length > 0 ? <AuthorBarChart rawData={authors} /> : <p style={{ fontFamily: font }}>Waiting for data...</p>}
                 </div>
               </div>
             </div>
@@ -274,9 +279,12 @@ function DashboardPage({ searchTerm, onNewSearch }) {
                     <tr key={paper._id || `${paper.title}-${paper.citationCount}`}>
                       <td style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>
                         {link ? (
-                          <a href={link} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>
-                            {paper.title || 'Untitled'}
-                          </a>
+                          <span
+                                onClick={() => onSelectPaper(paper)}
+                                style={{ color: '#2563eb', textDecoration: 'none', cursor: 'pointer' }}
+                              >
+                                {paper.title || 'Untitled'}
+                              </span>
                         ) : (
                           (paper.title || 'Untitled')
                         )}

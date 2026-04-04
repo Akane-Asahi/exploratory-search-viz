@@ -54,6 +54,19 @@ app.get("/api/concepts", async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.get("/api/authors", async (req, res) => {
+  try {
+    
+    const data = await Paper.aggregate([
+      { $unwind: "$authors" },
+      { $group: { _id: "$authors.name", count: { $sum: 1 }, citations: {$sum: "$citationCount" } }},
+      { $sort: { count: -1 } },
+      { $limit: 15 }
+    ]);
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.get("/api/yearly-citations/:id", async (req, res) => {
   try {
     
@@ -80,10 +93,11 @@ app.get("/api/closest-papers/:id", async (req, res) => {
     console.log(req.params.id);
     const paper = await Paper.findById(req.params.id);
     
-    const paperConcepts = paper.concepts.map(c => ({ name: c.name, score: c.score}));
+    const paperConcepts = paper.concepts.map(c => ({ name: c.name, score: c.score }));
     const paperConceptNames = paperConcepts.map(c => c.name);
 
     const data = await Paper.aggregate([
+      { $match: { _id: { $ne: paper._id } } },
       { $addFields: {
         sharedConceptScore: {
           $sum: {

@@ -58,7 +58,7 @@ function TrendSparkline({ values }) {
   );
 }
 
-function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch  }) {
+function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelectPaper }) {
   const [stats, setStats] = useState(null);
   const [evolutionData, setEvolutionData] = useState([]);
   const [topTerminologies, setTopTerminologies] = useState([]);
@@ -159,8 +159,21 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch  }) {
         <div style={{ padding: '0 0 4px' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
             <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '16px', margin: 0 }}>Metrics</p>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '24px', lineHeight: '41px', margin: 0 }}>{` → ${paper?.title}`}</p>
-          </div>
+            {(() => {
+              const doiValue = (paper.doi || '').trim();
+              console.log("paper:", paper);        // ← check paper exists
+              console.log("doi:", doiValue);
+              const normalizedDoiLink = doiValue
+                ? (doiValue.startsWith('http') ? doiValue : `https://doi.org/${doiValue}`)
+                : '';
+              const link = normalizedDoiLink || paper.openAlexUrl || paper.openAlexId || '';
+              return (
+                <a href={link} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>
+                  {` → ${paper.title}`} 
+                </a>
+              );
+            })()} 
+          </div> 
           <div style={{ display: 'flex', gap: '10px' }}>
             <div style={cardStyle}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280' }}>Total Citations</span>
@@ -177,8 +190,8 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch  }) {
               </span>
             </div>
             <div style={cardStyle}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280' }}>No. of Terminologies</span>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '38px', color: '#111827' }}>{stats?.totalTerminologies ?? 0}</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280' }}>Year</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '38px', color: '#111827' }}>{paper?.year ?? 0}</span>
             </div>
           </div>
         </div>
@@ -252,9 +265,9 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch  }) {
                     <tr key={paper._id || `${paper.title}-${paper.citationCount}`}>
                       <td style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>
                         {link ? (
-                          <a href={link} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none' }}>
-                            {paper.title || 'Untitled'}
-                          </a>
+                          <span onClick={() => onSelectPaper(paper)}  style={{ color: '#2563eb', textDecoration: 'none', cursor: 'pointer' }}>
+                                {paper.title || 'Untitled'}
+                              </span>
                         ) : (
                           (paper.title || 'Untitled')
                         )}
