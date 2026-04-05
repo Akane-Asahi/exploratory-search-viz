@@ -5,6 +5,7 @@ import PaperForceGraph from './PaperForceGraph';
 import BarGraph from './Bargraph'
 import WordCloud from './WordCloud'
 import CitedLineChart from './CitedLineChart';
+import AuthorChartSingle from './AuthorChartSingle';
 
 const font = "'Consolas', monospace";
 
@@ -68,6 +69,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
   const [topKeywords, setTopKeywords] = useState([]);
   const [citHisory, setCitHistory] = useState([]);
   const [closestPapers, setClosestPapers] = useState([]);
+  const [authorPaper, setAuthorPaper] = useState([]);
   const pollInterval = useRef(null);
 
   const fetchData = useCallback(async () => {
@@ -79,14 +81,15 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
         setIsSyncing(false);
         if (pollInterval.current) clearInterval(pollInterval.current);
 
-        const [resEvo, resTerminology, resNetwork, resTopPapers,resKeywords,resCitHistory,resClosestPapers] = await Promise.allSettled([
+        const [resEvo, resTerminology, resNetwork, resTopPapers,resKeywords,resCitHistory,resClosestPapers,resAuthorPaper] = await Promise.allSettled([
           axios.get('http://localhost:5000/api/topic-timeline?limit=8'),
           axios.get('http://localhost:5000/api/terminology'), 
           axios.get('http://localhost:5000/api/paper-network?limit=20'),
           axios.get('http://localhost:5000/api/top-cited?limit=20'),
           axios.get('http://localhost:5000/api/keywords?limit=100'),
           axios.get(`http://localhost:5000/api/yearly-citations/${paper._id}`),
-          axios.get(`http://localhost:5000/api/closest-papers/${paper._id}`)
+          axios.get(`http://localhost:5000/api/closest-papers/${paper._id}`),
+          axios.get(`http://localhost:5000/api/author-paper/${paper._id}`)
         ]);
 
         if (resEvo.status === 'fulfilled') {
@@ -110,6 +113,8 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
           setCitHistory(Array.isArray(resCitHistory.value.data) ? resCitHistory.value.data : []);
         }if (resClosestPapers.status === 'fulfilled') {
           setClosestPapers(Array.isArray(resClosestPapers.value.data) ? resClosestPapers.value.data : []);
+        }if (resAuthorPaper.status === 'fulfilled') {
+          setAuthorPaper(Array.isArray(resAuthorPaper.value.data) ? resAuthorPaper.value.data : []);
         }
       }
     } catch (err) {
@@ -225,11 +230,11 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
                 Visualization here
               </p>
               <div style={{ height: '588px' }}>
-                {/* {paperNetwork.nodes.length > 0 ? (
-                  <PaperForceGraph data={paperNetwork} />
+                {authorPaper?.length > 0 ? (
+                  <AuthorChartSingle rawData={authorPaper} />
                 ) : (
                   <p style={{ fontFamily: font }}>Waiting for paper network...</p>
-                )} */}
+                )} 
               </div>
               
             </div>

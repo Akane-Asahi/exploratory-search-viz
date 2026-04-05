@@ -67,6 +67,24 @@ app.get("/api/authors", async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+app.get("/api/author-paper/:id", async (req, res) => {
+  try {
+    const paper = await Paper.findById(req.params.id);
+    if (!paper) return res.status(404).json({ error: "Paper not found" });
+    const authorNames = paper.authors.map(a => a.name);
+
+    const data = await Paper.aggregate([
+      { $match: { "authors.name": { $in: authorNames } } },
+      { $unwind: "$authors" },
+      { $match: { "authors.name": { $in: authorNames } } },
+      { $group: { _id: "$authors.name", count: { $sum: 1 }, citations: {$sum: "$citationCount" } }},
+      { $sort: { count: -1 } },
+      
+    ]);
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 app.get("/api/yearly-citations/:id", async (req, res) => {
   try {
     
