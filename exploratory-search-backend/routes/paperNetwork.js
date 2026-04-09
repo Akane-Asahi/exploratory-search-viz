@@ -5,7 +5,8 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit, 10) || 20;
+    const parsed = parseInt(req.query.limit, 10);
+    const limit = Number.isFinite(parsed) ? parsed : 0;
     const graph = await getPaperNetwork(limit);
     res.json(graph);
   } catch (err) {

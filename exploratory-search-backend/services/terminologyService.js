@@ -8,95 +8,37 @@ const normalize = (value) => (value || "")
 const BLACKLIST = new Set(
   [
     "Computer Science",
-    "Artificial Intelligence",
-    "Medicine",
-    "Biology",
-    "Psychology",
-    "Human",
-    "Male",
-    "Female",
-    "MEDLINE",
     "Research",
-    "Psychiatry",
-    "Mental health",
-    "Human",
-    "Male",
-    "Female",
-    "Patient",
-    "Clinical",
-    "Schizophrenia",
-    "Anxiety",
-    "Psychosis"
+    "Paper",
+    "Study",
+    "Article"
   ].map((term) => term.toLowerCase())
 );
-
-const ALLOWED_ANCESTOR_TERMS = [
-  "Computer Science"
-].map(normalize);
-
-const EXCLUDED_ANCESTOR_TERMS = [
-  "Psychology",
-  "Medicine",
-  "Biology",
-  "Psychiatry",
-  "Archaeology",
-  "Physics",
-  "MEDLINE"
-].map(normalize);
 
 const TOP_TERMS_LIMIT = 20;
 const TREND_WINDOW_YEARS = 10;
 
-function computeNicheScore(totalScore, count) {
-  return totalScore / Math.log(count + 1);
-}
-
-function getNormalizedAncestors(concept) {
-  return (concept?.ancestors || [])
-    .map((a) => normalize(a))
-    .filter(Boolean);
-}
-
-function hasExcludedAncestor(concept) {
-  const ancestors = getNormalizedAncestors(concept);
-  return ancestors.some((ancestor) =>
-    EXCLUDED_ANCESTOR_TERMS.some((blocked) => ancestor.includes(blocked))
-  );
-}
-
-function isDomainRelevant(concept) {
-  const ancestors = getNormalizedAncestors(concept);
-
-  if (ancestors.length === 0) return false;
-
-  if (hasExcludedAncestor(concept)) return false;
-
-  const hasAllowedAncestor = ancestors.some((ancestor) =>
-    ALLOWED_ANCESTOR_TERMS.some((allowed) => ancestor.includes(allowed))
-  );
-  return hasAllowedAncestor;
+function computeNicheScore(count) {
+  return count / Math.log(count + 1);
 }
 
 async function getTopTerminologies(limit = TOP_TERMS_LIMIT) {
-  const papers = await Paper.find({}, { concepts: 1, year: 1 }).lean();
-  const strictStats = new Map();
-  const fallbackStats = new Map();
+  const papers = await Paper.find({}, { tags: 1, primaryTopic: 1, year: 1 }).lean();
+  const stats = new Map();
   const currentYear = new Date().getFullYear();
   const minTrendYear = currentYear - (TREND_WINDOW_YEARS - 1);
   const yearRange = Array.from({ length: TREND_WINDOW_YEARS }, (_, i) => minTrendYear + i);
 
-  const applyConceptToStats = (statsMap, name, conceptScore, year) => {
-    if (!statsMap.has(name)) {
-      statsMap.set(name, {
+  const applyTermToStats = (name, year) => {
+    if (!stats.has(name)) {
+      stats.set(name, {
         name,
-        totalScore: 0,
         count: 0,
         trendByYear: yearRange.reduce((acc, y) => ({ ...acc, [y]: 0 }), {})
       });
     }
 
-    const entry = statsMap.get(name);
-    entry.totalScore += Number(conceptScore || 0);
+    const entry = stats.get(name);
     entry.count += 1;
     if (year >= minTrendYear && year <= currentYear) {
       entry.trendByYear[year] += 1;
@@ -105,28 +47,23 @@ async function getTopTerminologies(limit = TOP_TERMS_LIMIT) {
 
   papers.forEach((paper) => {
     const year = Number(paper?.year || 0);
+    const terms = [
+      ...(paper.tags || []),
+      paper.primaryTopic || ""
+    ]
+      .map((term) => (term || "").trim())
+      .filter(Boolean);
 
-    (paper.concepts || []).forEach((concept) => {
-      const name = (concept?.name || "").trim();
-      if (!name) return;
+    const uniqueTerms = [...new Set(terms)];
+    uniqueTerms.forEach((name) => {
       if (BLACKLIST.has(name.toLowerCase())) return;
-
-      // Strict mode keeps CS-only terminology quality high.
-      if (isDomainRelevant(concept)) {
-        applyConceptToStats(strictStats, name, concept?.score, year);
-      }
-
-      // Fallback avoids an empty ranked table when strict ancestors are sparse.
-      if (!hasExcludedAncestor(concept)) {
-        applyConceptToStats(fallbackStats, name, concept?.score, year);
-      }
+      applyTermToStats(name, year);
     });
   });
 
-  const chosenStats = strictStats.size > 0 ? strictStats : fallbackStats;
-  const scored = Array.from(chosenStats.values()).map((entry) => ({
+  const scored = Array.from(stats.values()).map((entry) => ({
     ...entry,
-    nicheScore: computeNicheScore(entry.totalScore, entry.count)
+    nicheScore: computeNicheScore(entry.count)
   }));
 
   const highestScore = scored.reduce((max, item) => Math.max(max, item.nicheScore), 0);

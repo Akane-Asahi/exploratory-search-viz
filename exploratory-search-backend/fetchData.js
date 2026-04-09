@@ -8,29 +8,29 @@ const normalize = (value) => (value || "")
   .replace(/[–—]/g, "-")
   .trim();
 
-const hasComputerScienceAncestor = (concept) =>
-  (concept?.ancestors || []).some((ancestor) =>
-    normalize(ancestor?.display_name || ancestor?.name || "").includes("computer science")
-  );
+const CATEGORY_FILTER_MAP = {
+  "All Computer Science": "topics.field.id:fields/17",
+  "AI & Machine Learning": "topics.subfield.id:subfields/1702",
+  "HCI & Visualization": "topics.subfield.id:subfields/1709", 
+  "Information Retrieval & Search": "topics.subfield.id:subfields/1710",
+  "Software Engineering": "topics.subfield.id:subfields/1712",
+  "Computer Graphics": "topics.subfield.id:subfields/1704",
+  "Theoretical Computer Science": "topics.subfield.id:subfields/1703", 
+  "Computer Networks & Comm": "topics.subfield.id:subfields/1705",
+  "Computer Security & Reliability": "topics.subfield.id:subfields/1702",
+  "Database Management Systems": "topics.subfield.id:subfields/1706"
+};
 
-const EXCLUDED_DOMAIN_TERMS = [
-  "medicine",
-  "biology",
-  "psychology",
-  "psychiatry",
-  "archaeology",
-  "physics",
-  "medline"
-];
-
-const hasExcludedDomainAncestor = (concept) =>
-  (concept?.ancestors || []).some((ancestor) => {
-    const normalizedAncestor = normalize(ancestor?.display_name || ancestor?.name || "");
-    return EXCLUDED_DOMAIN_TERMS.some((term) => normalizedAncestor.includes(term));
-  });
+const passesQualityThresholds = (work) => {
+  const title = work.display_name || work.title || "";
+  if (!title || title.length < 5) return false;
+  if (!work.authorships || work.authorships.length === 0) return false;
+  // We relax the abstract requirement for older foundational papers
+  return true; 
+};
 
 const paperSchema = new mongoose.Schema({
-  openAlexId: String,
+  openAlexId: { type: String, unique: true },
   openAlexUrl: String,
   doi: String,
   title: String,
@@ -40,41 +40,38 @@ const paperSchema = new mongoose.Schema({
   venue: String,
   authors: [{ authorId: String, name: String }],
   keywords: [String],
-  concepts: [{ 
-    name: String, 
-    level: Number, 
-    score: Number,
-    ancestors: [String]
-  }]
+  primaryTopic: String,
+  tags: [String],
+  referencedWorks: [String]
 });
 
-// Create the model
-const Paper = mongoose.model("Paper", paperSchema);
+const Paper = mongoose.models.Paper || mongoose.model("Paper", paperSchema);
 
-// Helper function to handle retries for API stability
-async function axiosWithRetry(config, retries = 3) {
+async function axiosWithRetry(config, retries = 3, delay = 2000) {
   for (let i = 0; i < retries; i++) {
     try {
       return await axios(config);
     } catch (err) {
-      const isTimeout = err.code === 'ECONNABORTED' || err.message.includes('timeout');
-      if (isTimeout && i < retries - 1) {
-        console.log(`⚠️ Timeout reached. Retrying page... (Attempt ${i + 2}/${retries})`);
-        await new Promise(res => setTimeout(res, 2000)); // Wait 2s before retry
-        continue;
+      if (err.response?.status === 429) {
+        console.warn(`⚠️ Rate limited. Retrying in ${delay}ms...`);
+        await new Promise(r => setTimeout(r, delay));
+        delay *= 2;
+      } else {
+        throw err;
       }
-      throw err;
     }
   }
+  throw new Error("Max retries reached");
 }
 
-async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, searchMode = "semantic") {
+async function fetchAndStore(searchTerm, onProgress, category = "All Computer Science") {
   if (!searchTerm) return { success: false, message: "No search term provided" };
-  const total = Math.min(10000, Math.max(100, totalPapers));
-  const normalizedMode = searchMode === "keyword" ? "keyword" : "semantic";
-  const effectiveTotal = normalizedMode === "semantic" ? Math.min(total, 50) : total;
-  const report = (saved, status, error) => {
-    if (onProgress) onProgress({ saved, total: effectiveTotal, status, error: error || null });
+  
+  const mappedCategory = CATEGORY_FILTER_MAP[category] || CATEGORY_FILTER_MAP["All Computer Science"];
+  const apiFilter = `${mappedCategory},language:en`;
+
+  const report = (saved, total, status, error) => {
+    if (onProgress) onProgress({ saved, total, status, error: error || null });
   };
 
   try {
@@ -83,160 +80,158 @@ async function fetchAndStore(searchTerm, totalPapers = 10000, onProgress, search
     }
 
     await Paper.deleteMany({});
-    report(0, 'fetching');
+    report(0, "Locating Seed Papers...", 'fetching');
 
-    let totalSaved = 0;
     const currentYear = new Date().getFullYear();
+    const mailto = process.env.USER_EMAIL || "";
 
-    console.log(`📡 Starting ${normalizedMode} fetch for: "${searchTerm}"`);
+    // -------------------------------------------------------------
+    // STEP 1: Fetch Top 3 "Seed" Papers based on the search term
+    // -------------------------------------------------------------
+    console.log(`\n🌱 Fetching Seed Papers for: "${searchTerm}"`);
+    const seedResponse = await axiosWithRetry({
+      method: "get",
+      url: "https://api.openalex.org/works",
+      params: {
+        search: `"${searchTerm}"`, 
+        filter: apiFilter,
+        sort: "relevance_score:desc,cited_by_count:desc",
+        "per-page": 3,
+        mailto
+      }
+    });
 
-    const toPaperDocs = (works) => works.reduce((docs, work) => {
-      const allConcepts = (work.concepts || [])
-        .filter((c) => c.level >= 2)
-        .map((c) => ({
-          name: c.display_name,
-          level: c.level,
-          score: c.score,
-          ancestors: (c.ancestors || [])
-            .map((a) => a?.display_name || a?.name || "")
-            .filter(Boolean)
-        }));
+    const seedWorks = seedResponse.data.results || [];
+    if (seedWorks.length === 0) {
+      console.log("No seed papers found.");
+      report(0, 0, 'done');
+      return { success: true, count: 0 };
+    }
 
-      const csConcepts = (work.concepts || [])
-        .filter((c) => c.level >= 3 && hasComputerScienceAncestor(c))
-        .map((c) => ({
-          name: c.display_name,
-          level: c.level,
-          score: c.score,
-          ancestors: (c.ancestors || [])
-            .map((a) => a?.display_name || a?.name || "")
-            .filter(Boolean)
-        }));
+    const seedIds = seedWorks.map(w => w.id.replace('https://openalex.org/', ''));
+    let allWorksMap = new Map(); // Use a map to deduplicate papers by ID
 
-      // Prefer CS concepts when present, but fall back to general level>=2 concepts
-      // so queries outside strict CS taxonomy still return papers.
-      const selectedConcepts = csConcepts.length > 0 ? csConcepts : allConcepts;
-      if (selectedConcepts.length === 0) return docs;
+    // Add seeds to our map
+    seedWorks.forEach(w => allWorksMap.set(w.id, w));
+
+    // -------------------------------------------------------------
+    // STEP 2: Fetch Papers that CITE the seeds (Descendants)
+    // -------------------------------------------------------------
+    report(seedWorks.length, "Fetching citations...", 'fetching');
+    console.log(`🌿 Fetching papers that cite the seeds...`);
+    
+    // Create an OR filter for citations: cites:W123|cites:W456
+    const citeFilter = seedIds.map(id => `${id}`).join('|');
+    
+    const citingResponse = await axiosWithRetry({
+      method: "get",
+      url: "https://api.openalex.org/works",
+      params: {
+        filter: `cites:${citeFilter},language:en`,
+        sort: "cited_by_count:desc",
+        "per-page": 100, // Top 100 most cited papers that cite our seeds
+        mailto
+      }
+    });
+
+    (citingResponse.data.results || []).forEach(w => allWorksMap.set(w.id, w));
+
+    // -------------------------------------------------------------
+    // STEP 3: Fetch Papers referenced BY the seeds (Ancestors)
+    // -------------------------------------------------------------
+    report(allWorksMap.size, "Fetching references...", 'fetching');
+    console.log(`🌳 Fetching foundational papers referenced by seeds...`);
+
+    let referencedIds = new Set();
+    seedWorks.forEach(seed => {
+      (seed.referenced_works || []).forEach(ref => {
+         referencedIds.add(ref.replace('https://openalex.org/', ''));
+      });
+    });
+
+    // Take top 100 references to avoid payload size limits
+    const refArray = Array.from(referencedIds).slice(0, 100); 
+
+    if (refArray.length > 0) {
+        // We chunk the IDs because OpenAlex URL limits can drop requests if filter string is too long
+        const chunkedRefs = refArray.slice(0, 50).join('|');
+        const refResponse = await axiosWithRetry({
+            method: "get",
+            url: "https://api.openalex.org/works",
+            params: {
+              filter: `openalex:${chunkedRefs}`,
+              "per-page": 50,
+              mailto
+            }
+        });
+        (refResponse.data.results || []).forEach(w => allWorksMap.set(w.id, w));
+    }
+
+    // -------------------------------------------------------------
+    // STEP 4: Format and Save to Database
+    // -------------------------------------------------------------
+    console.log(`💾 Formatting and saving ${allWorksMap.size} interconnected papers...`);
+    
+    const toPaperDocs = (worksArray) => worksArray.reduce((docs, work) => {
+      if (!passesQualityThresholds(work)) return docs;
+      
+      const topicTags = (work.topics || []).map((t) => t?.display_name || "").filter(Boolean);
+      
+      // CRITICAL FIX: Only extract highly specific concepts (Level 2 or higher)
+      // This prevents "Computer science" (Level 0) from flooding your tags array
+      const conceptTags = (work.concepts || [])
+        .filter(c => c.level >= 2) 
+        .map(c => c?.display_name || "")
+        .filter(Boolean);
+      
+      // Stop known generic noise from even making it into MongoDB
+      const noiseWords = new Set(["computer science", "uncategorized", "research", "paper", "study"]);
+      
+      // Bumped the slice to 10 to give your specific topics more breathing room
+      let tags = [...new Set([...topicTags, ...conceptTags])]
+        .filter(tag => !noiseWords.has(tag.toLowerCase()))
+        .slice(0, 10); 
+      
+      if (tags.length === 0) tags = [work.primary_topic?.display_name || "Unknown Topic"];
 
       docs.push({
         openAlexId: work.id || "",
-        openAlexUrl:
-          work.primary_location?.landing_page_url ||
-          work.primary_location?.source?.homepage_url ||
-          "",
+        openAlexUrl: work.primary_location?.landing_page_url || "",
         doi: work.doi || "",
         title: work.display_name,
         year: work.publication_year,
-        citationCount: work.cited_by_count,
-        timeBucket:
-          work.publication_year >= currentYear - 1
-            ? "recent"
-            : work.publication_year >= currentYear - 6
-              ? "historical"
-              : "outside_window",
-        venue:
-          work.primary_location?.source?.display_name ||
-          work.host_venue?.display_name ||
-          "Unknown Venue",
-        authors: (work.authorships || []).map(a => ({
-          authorId: a.author?.id || "",
-          name: a.author?.display_name || ""
-        })),
-        keywords: (work.keywords || [])
-          .map((k) => k?.display_name || k?.keyword || "")
-          .filter(Boolean),
-        concepts: selectedConcepts
+        citationCount: Number(work.cited_by_count || 0),
+        timeBucket: work.publication_year >= currentYear - 2 ? "recent" : "historical",
+        venue: work.primary_location?.source?.display_name || "Unknown Venue",
+        authors: (work.authorships || [])
+          .map((a) => ({
+            authorId: a.author?.id || "",
+            name: a.author?.display_name || ""
+          }))
+          .filter((a) => a.name),
+        keywords: (work.keywords || []).map((k) => k?.display_name || "").filter(Boolean).slice(0, 10),
+        primaryTopic: work.primary_topic?.display_name || "Unknown Topic",
+        tags: tags, 
+        referencedWorks: (work.referenced_works || []).filter(Boolean)
       });
-
       return docs;
     }, []);
 
-    if (normalizedMode === "semantic") {
-      const response = await axiosWithRetry({
-        method: "get",
-        url: "https://api.openalex.org/works",
-        params: {
-          "search.semantic": searchTerm,
-          // Semantic search supports a narrower set of filters.
-          filter: "language:en",
-          "per-page": 50,
-          page: 1,
-          mailto: process.env.USER_EMAIL || "user@example.com"
-        },
-        timeout: 60000
-      });
+    const papersToSave = toPaperDocs(Array.from(allWorksMap.values()));
 
-      const works = (response.data.results || []).filter(
-        (work) => (work.publication_year || 0) >= 2010
-      );
-      const pagePapers = toPaperDocs(works).slice(0, effectiveTotal);
-      if (pagePapers.length > 0) {
-        await Paper.insertMany(pagePapers);
-      }
-      totalSaved = pagePapers.length;
-      console.log(`✅ Saved ${totalSaved} papers...`);
-      report(totalSaved, "fetching");
-    } else {
-      let nextCursor = "*";
-      let emptyPageStreak = 0;
-      let scannedPages = 0;
-      const maxScannedPages = 120;
-      const maxEmptyStreak = 15;
-
-      while (nextCursor && totalSaved < effectiveTotal) {
-        scannedPages += 1;
-        const response = await axiosWithRetry({
-          method: "get",
-          url: "https://api.openalex.org/works",
-          params: {
-            search: searchTerm,
-            filter: "from_publication_date:2010-01-01,language:en",
-            "per-page": 200,
-            cursor: nextCursor,
-            mailto: process.env.USER_EMAIL || "user@example.com"
-          },
-          timeout: 60000
-        });
-
-        const works = response.data.results;
-        if (!works || works.length === 0) break;
-
-        const pagePapers = toPaperDocs(works);
-        const remaining = Math.max(0, effectiveTotal - totalSaved);
-        const papersToSave = pagePapers.slice(0, remaining);
-        if (papersToSave.length > 0) {
-          await Paper.insertMany(papersToSave);
-          emptyPageStreak = 0;
-        } else {
-          emptyPageStreak += 1;
-        }
-        totalSaved += papersToSave.length;
-        console.log(`✅ Saved ${totalSaved} papers... (page ${scannedPages})`);
-        report(totalSaved, "fetching");
-
-        nextCursor = response.data.meta.next_cursor;
-        if (totalSaved >= effectiveTotal) break;
-        if (scannedPages >= maxScannedPages) {
-          console.log(`⏹️ Stopping early after ${scannedPages} pages (max scan limit reached).`);
-          break;
-        }
-        if (totalSaved === 0 && emptyPageStreak >= maxEmptyStreak) {
-          console.log(`⏹️ Stopping early after ${emptyPageStreak} empty pages (no qualifying papers found).`);
-          break;
-        }
-      }
+    if (papersToSave.length > 0) {
+      await Paper.insertMany(papersToSave);
     }
 
-    console.log("🚀 Data Refresh Complete!");
-    report(totalSaved, 'done');
-    return { success: true, count: totalSaved };
+    console.log(`🚀 Snowball Fetch Complete! Saved ${papersToSave.length} connected papers.`);
+    report(papersToSave.length, papersToSave.length, 'done');
+    return { success: true, count: papersToSave.length };
 
   } catch (error) {
-    console.error("❌ Final Fetch Error:", error.message);
-    report(0, 'error', error.message);
+    console.error("❌ Fetch Error:", error.message);
+    report(0, 0, 'error', error.message);
     return { success: false, error: error.message };
   }
 }
 
-// Export BOTH the function and the Model for index.js
 module.exports = { fetchAndStore, Paper };

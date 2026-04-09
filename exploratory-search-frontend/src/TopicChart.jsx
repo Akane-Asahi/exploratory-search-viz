@@ -1,7 +1,9 @@
 import React, { useRef, useEffect } from 'react';
 import * as d3 from 'd3';
 
-const TopicChart = ({ rawData }) => {
+const normalizeLabel = (value) => (value || '').toString().trim().toLowerCase();
+
+const TopicChart = ({ rawData, conceptColors = {} }) => {
   const containerRef = useRef();
   const svgRef = useRef();
 
@@ -68,12 +70,12 @@ const TopicChart = ({ rawData }) => {
 
     // Group points by concept
     const groups = d3.rollup(points, v => Object.assign(v, { z: v[0][2] }), d => d[2]);
+    const colorFor = (concept) => conceptColors[normalizeLabel(concept)] || '#94a3b8';
 
     // Draw lines
     const line = d3.line();
     const path = svg.append("g")
       .attr("fill", "none")
-      .attr("stroke", "#2563eb")
       .attr("stroke-width", 1.5)
       .attr("stroke-linejoin", "round")
       .attr("stroke-linecap", "round")
@@ -81,6 +83,7 @@ const TopicChart = ({ rawData }) => {
       .data(groups.values())
       .join("path")
       .style("mix-blend-mode", "multiply")
+      .attr("stroke", d => colorFor(d.z))
       .attr("d", line);
 
     // Interactive dot + label
@@ -113,8 +116,10 @@ const TopicChart = ({ rawData }) => {
       const [xm, ym] = d3.pointer(event);
       const i = d3.leastIndex(points, ([px, py]) => Math.hypot(px - xm, py - ym));
       const [px, py, k] = points[i];
-      path.style("stroke", ({ z }) => z === k ? null : "#ddd").filter(({ z }) => z === k).raise();
+      const selectedColor = colorFor(k);
+      path.style("stroke", ({ z }) => (z === k ? selectedColor : "#d1d5db")).filter(({ z }) => z === k).raise();
       dot.attr("transform", `translate(${px},${py})`);
+      dot.select("circle").attr("fill", selectedColor);
       dot.select("text").text(k);
     }
 
@@ -124,11 +129,11 @@ const TopicChart = ({ rawData }) => {
     }
 
     function pointerleft() {
-      path.style("mix-blend-mode", "multiply").style("stroke", null);
+      path.style("mix-blend-mode", "multiply").style("stroke", ({ z }) => colorFor(z));
       dot.attr("display", "none");
     }
 
-  }, [rawData]);
+  }, [rawData, conceptColors]);
 
   return (
     <div ref={containerRef} style={{ width: '100%', height: '100%' }}>

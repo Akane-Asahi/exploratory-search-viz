@@ -11,11 +11,12 @@ const SearchIcon = () => (
 const BAR_LENGTH = 30;
 
 function ProgressBar({ saved, total }) {
-  const ratio = Math.min(saved / total, 1);
+  const isCalculating = typeof total === 'string';
+  const ratio = isCalculating || total === 0 ? 0 : Math.min(saved / total, 1);
   const filled = Math.round(ratio * BAR_LENGTH);
   const empty = BAR_LENGTH - filled;
   const bar = '▓'.repeat(filled) + '░'.repeat(empty);
-  const pct = (ratio * 100).toFixed(0);
+  const pct = isCalculating ? 0 : (ratio * 100).toFixed(0);
 
   return (
     <div style={{
@@ -26,23 +27,29 @@ function ProgressBar({ saved, total }) {
       lineHeight: '1.8'
     }}>
       <p style={{ margin: '0 0 8px 0', fontSize: '20px' }}>
-        Fetching {total.toLocaleString()} papers
+        {isCalculating ? "Calculating total papers..." : `Fetching top ${Math.min(total, 10000).toLocaleString()} papers`}
       </p>
-      <p style={{ margin: 0, letterSpacing: '1px' }}>{bar}</p>
-      <p style={{ margin: '8px 0 0 0', fontSize: '16px', color: '#555' }}>
-        {saved.toLocaleString()} / {total.toLocaleString()} ({pct}%)
-      </p>
+      {!isCalculating && (
+        <>
+          <p style={{ margin: 0, letterSpacing: '1px' }}>{bar}</p>
+          <p style={{ margin: '8px 0 0 0', fontSize: '16px', color: '#555' }}>
+            {saved.toLocaleString()} / {Math.min(total, 10000).toLocaleString()} ({pct}%)
+          </p>
+          {total > 10000 && (
+            <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#059669' }}>
+              Found {total.toLocaleString()} total papers in OpenAlex index.
+            </p>
+          )}
+        </>
+      )}
     </div>
   );
 }
 
-const MIN_PAPERS = 100;
-const MAX_PAPERS = 10000;
-
 function HomePage({ onSearchComplete }) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchMode, setSearchMode] = useState('keyword');
-  const [paperCount, setPaperCount] = useState(5000);
+  const [category, setCategory] = useState('All Computer Science');
+  const [sortBy, setSortBy] = useState('relevance');
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(null);
   const [error, setError] = useState(null);
@@ -85,12 +92,12 @@ function HomePage({ onSearchComplete }) {
     }
     setError(null);
     setIsLoading(true);
-    setProgress({ saved: 0, total: paperCount, status: 'fetching', error: null });
+    setProgress({ saved: 0, total: "Calculating...", status: 'fetching', error: null });
     termRef.current = term;
 
     try {
       await axios.post('/api/trigger-fetch',
-        { searchTerm: term, totalPapers: paperCount, searchMode },
+        { searchTerm: term, category, sortBy },
         { timeout: 10000 }
       );
       startPolling();
@@ -119,7 +126,7 @@ function HomePage({ onSearchComplete }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: '50px',
+        gap: '30px',
         padding: '0 30px',
         width: '100%',
         maxWidth: '1062px'
@@ -130,14 +137,14 @@ function HomePage({ onSearchComplete }) {
           fontSize: '80px',
           lineHeight: '1',
           color: 'black',
-          margin: 0,
+          margin: '0 0 20px 0',
           textAlign: 'center'
         }}>
           Your Next Research
         </h1>
 
         {!isLoading && (
-          <>
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <div style={{
               display: 'flex',
               gap: '10px',
@@ -155,26 +162,6 @@ function HomePage({ onSearchComplete }) {
                 justifyContent: 'flex-start',
                 overflow: 'hidden'
               }}>
-                <select
-                  value={searchMode}
-                  onChange={(e) => setSearchMode(e.target.value)}
-                  style={{
-                    border: 'none',
-                    outline: 'none',
-                    background: 'transparent',
-                    paddingLeft: '15px',
-                    paddingRight: '10px',
-                    color: '#64748b',
-                    fontFamily: "'Consolas', monospace",
-                    fontSize: '16px',
-                    height: '100%',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <option value="semantic">Semantic Search</option>
-                  <option value="keyword">Keyword Search</option>
-                </select>
-                <div style={{ width: '1px', height: '38px', backgroundColor: '#e2e8f0' }} />
                 <input
                   type="text"
                   value={searchTerm}
@@ -192,9 +179,38 @@ function HomePage({ onSearchComplete }) {
                     flex: 1,
                     minWidth: 0,
                     textAlign: 'left',
-                    padding: '0 24px'
+                    padding: '0 30px'
                   }}
                 />
+                <div style={{ width: '1px', height: '38px', backgroundColor: '#e2e8f0' }} />
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    background: 'transparent',
+                    paddingLeft: '15px',
+                    paddingRight: '18px',
+                    color: '#64748b',
+                    fontFamily: "'Consolas', monospace",
+                    fontSize: '14px',
+                    height: '100%',
+                    cursor: 'pointer',
+                    maxWidth: '235px'
+                  }}
+                >
+                  <option value="All Computer Science">All Computer Science</option>
+                  <option value="Information Retrieval & Search">Information Retrieval & Search</option>
+                  <option value="HCI & Visualization">HCI & Visualization</option>
+                  <option value="AI & Machine Learning">AI & Machine Learning</option>
+                  <option value="Software Engineering">Software Engineering</option>
+                  <option value="Computer Graphics">Computer Graphics</option>
+                  <option value="Theoretical Computer Science">Theoretical Computer Science</option>
+                  <option value="Computer Networks & Comm">Computer Networks & Comm</option>
+                  <option value="Computer Security & Reliability">Computer Security & Reliability</option>
+                  <option value="Database Management Systems">Database Management Systems</option>
+                </select>
               </div>
               <button
                 onClick={handleSearch}
@@ -211,25 +227,31 @@ function HomePage({ onSearchComplete }) {
                 <SearchIcon />
               </button>
             </div>
-            <div style={{ width: '100%', maxWidth: 500 }}>
-              <label style={{ fontFamily: "'Consolas', monospace", fontSize: '14px', color: '#333', display: 'block', marginBottom: 8 }}>
-                Papers to fetch: <strong>{paperCount.toLocaleString()}</strong>
+
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px' }}>
+              <label style={{ fontFamily: "'Consolas', monospace", fontSize: '14px', color: '#64748b' }}>
+                Sort Results By:
               </label>
-              <input
-                type="range"
-                className="paper-count-slider"
-                min={MIN_PAPERS}
-                max={MAX_PAPERS}
-                step={100}
-                value={paperCount}
-                onChange={(e) => setPaperCount(Number(e.target.value))}
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontFamily: "'Consolas', monospace", fontSize: '12px', color: '#64748b', marginTop: 4 }}>
-                <span>100</span>
-                <span>10,000</span>
-              </div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                style={{
+                  border: '2px solid black',
+                  borderRadius: '10px',
+                  padding: '6px 12px',
+                  outline: 'none',
+                  background: 'white',
+                  fontFamily: "'Consolas', monospace",
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="relevance">Relevance (Best Match)</option>
+                <option value="citations">Citation Count (Most Impactful)</option>
+                <option value="date">Publication Date (Newest First)</option>
+              </select>
             </div>
-          </>
+          </div>
         )}
 
         {isLoading && progress && (
