@@ -42,7 +42,16 @@ const paperSchema = new mongoose.Schema({
   keywords: [String],
   primaryTopic: String,
   tags: [String],
-  referencedWorks: [String]
+  referencedWorks: [String],
+  concepts: [{ 
+    name: String, 
+    level: Number, 
+    score: Number,
+    ancestors: [String]
+  }],
+  citationsByYear: [{
+    year: Number,
+    count: Number
 });
 
 const Paper = mongoose.models.Paper || mongoose.model("Paper", paperSchema);
@@ -73,7 +82,7 @@ async function fetchAndStore(searchTerm, onProgress, category = "All Computer Sc
   const report = (saved, total, status, error) => {
     if (onProgress) onProgress({ saved, total, status, error: error || null });
   };
-
+  
   try {
     if (mongoose.connection.readyState !== 1) {
       await mongoose.connect(process.env.MONGO_URI);
@@ -197,6 +206,7 @@ async function fetchAndStore(searchTerm, onProgress, category = "All Computer Sc
       docs.push({
         openAlexId: work.id || "",
         openAlexUrl: work.primary_location?.landing_page_url || "",
+        
         doi: work.doi || "",
         title: work.display_name,
         year: work.publication_year,
@@ -212,7 +222,11 @@ async function fetchAndStore(searchTerm, onProgress, category = "All Computer Sc
         keywords: (work.keywords || []).map((k) => k?.display_name || "").filter(Boolean).slice(0, 10),
         primaryTopic: work.primary_topic?.display_name || "Unknown Topic",
         tags: tags, 
-        referencedWorks: (work.referenced_works || []).filter(Boolean)
+        referencedWorks: (work.referenced_works || []).filter(Boolean),
+        citationsByYear: (work.counts_by_year || []).map(a => ({
+          year: a?.year,
+          count: a?.cited_by_count
+        })),
       });
       return docs;
     }, []);

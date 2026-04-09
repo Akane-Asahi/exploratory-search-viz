@@ -1,4 +1,6 @@
+
 require("dotenv").config();
+const { ObjectId } =  require('mongodb');
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -62,24 +64,19 @@ app.get("/api/trends", async (req, res) => {
 // 2. Top Cited (Bar Chart & Table)
 app.get("/api/top-cited", async (req, res) => {
   try {
-    const limit = req.query.limit ? parseInt(req.query.limit, 10) : 0;
-    
-    // ADDED .lean() and the formatting map!
-    const rawPapers = await Paper.find().sort({ citationCount: -1 }).limit(limit).lean();
-    const formattedPapers = rawPapers.map(formatPaperForFrontend);
-    
-    res.json(formattedPapers);
-  } catch (err) { 
-    res.status(500).json({ error: err.message }); 
-  }
+    const limit = Math.min(50, Math.max(5, parseInt(req.query.limit, 10) || 20));
+    const data = await Paper.find().sort({ citationCount: -1 }).limit(limit);
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 3. Top Tags (General Overview - Updated to use tags instead of deprecated concepts)
+// 3. Top Concepts (zGeneral Overview)
 app.get("/api/concepts", async (req, res) => {
   try {
+    
     const data = await Paper.aggregate([
-      { $unwind: "$tags" },
-      { $group: { _id: "$tags", count: { $sum: 1 } } },
+      { $unwind: "$authors" },
+      { $group: { _id: "$authors.name" , count: { $sum: 1 }, citations: {$sum: "$citationCount" } }},
       { $sort: { count: -1 } },
       { $limit: 15 }
     ]);
@@ -87,8 +84,234 @@ app.get("/api/concepts", async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// 4. Dashboard Summary Stats
-app.get("/api/papers/dashboard-stats", async (req, res) => {
+app.get("/api/authors", async (req, res) => {
+  try {
+    
+    const data = await Paper.aggregate([
+      { $unwind: "$concepts" },
+      { $group: { _id: "$concepts.name", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 15 }
+    ]);
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get("/api/paper-authors/:id", async (req, res) => {
+  try {
+    
+    const paper = await Paper.findById(req.params.id);
+    if (!paper) return res.status(404).json({ error: "Paper not found" });
+    const authorNames = paper.authors.map(a => a.name);
+
+    const data = await Paper.aggregate([
+      { $match: { "authors.name": { $in: authorNames } } },
+      { $unwind: "$authors" },
+      { $match: { "authors.name": { $in: authorNames } } },
+      { $group: { _id: "$authors.name",  count: { $sum: 1 }, citations: {$sum: "$citationCount" } }},
+      { $sort: { count: -1 } },
+      
+    ]);
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+ 
+app.get("/api/coauthors/:name", async (req, res) => {
+  try {
+  
+   
+    console.log(req.params.name);
+    
+    const authorName = req.params.name;
+   
+    
+    
+    //const author = paper.authors.map(a => a.name);
+
+    const data = await Paper.aggregate([
+      { $match: { "authors.name": authorName } },
+      { $unwind: "$authors" },
+      { $match: { "authors.name": { $ne: authorName } } },
+      {
+        $group: {
+          _id: "$authors.name",
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+    
+    
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get("/api/author-papers/:name", async (req, res) => {
+  try {
+  
+   
+    console.log(req.params.name);
+    const authorName = req.params.name;
+    
+    const data = await Paper.aggregate([
+      
+      { $match: { "authors.name": authorName } },
+      {$sort: {citationCount: -1}}
+      
+      
+    ]);
+    
+    
+    
+    
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get("/api/author-citation/:name", async (req, res) => {
+  try {
+  
+   
+    console.log(req.params.name);
+    const authorName = req.params.name;
+    
+    const data = await Paper.aggregate([
+      
+      { $match: { "authors.name": authorName } },
+
+      
+      { $unwind: "$citationsByYear" },
+
+      {
+        $group: {
+          _id: "$citationsByYear.year",
+          count: { $sum: "$citationsByYear.count" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          year: "$_id",
+          count: 1
+        }
+      },
+      
+
+      { $sort: { count: 1 } }
+    ]);
+    
+    const currentYear = new Date().getFullYear();
+    const years = data.map(d => d.year);
+    const startYear = Math.min(...years);
+
+    const map = new Map(data.map(d => [d.year, d.count]));
+
+    const filled = [];
+    for (let y = startYear; y <= currentYear; y++) {
+      filled.push({ year: y, count: map.get(y) ?? 0 });
+    }
+    
+    
+    res.json(filled);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get("/api/yearly-citations/:id", async (req, res) => {
+  try {
+    
+    const paper = await Paper.findById(req.params.id);
+    if (!paper) return res.status(404).json({ error: "Paper not found" });
+
+    const currentYear = new Date().getFullYear();
+    const startYear = paper.year || 2000;
+    const map = new Map((paper.citationsByYear || []).map(d => [d.year, d.count]));
+
+    const filled = [];
+    for (let year = startYear; year <= currentYear; year++) {
+      filled.push({ year, count: map.get(year) ?? 0 });
+    }
+
+    res.json(filled);
+  } catch (err) { 
+    res.status(500).json({ error: err.message }); 
+  }
+});
+
+app.get("/api/closest-papers/:id", async (req, res) => {
+  try {
+    console.log(req.params.id);
+    const paper = await Paper.findById(req.params.id);
+    
+    const paperConcepts = paper.concepts.map(c => ({ name: c.name, score: c.score }));
+    const paperConceptNames = paperConcepts.map(c => c.name);
+
+    const data = await Paper.aggregate([
+      { $match: { _id: { $ne: paper._id } } },
+      { $addFields: {
+        sharedConceptScore: {
+          $sum: {
+            $map: {
+              input: {
+                $filter: {
+                  input: "$concepts",
+                  as: "concept",
+                  cond: { $in: ["$$concept.name", paperConceptNames] }
+                }
+              },
+              as: "matched",
+              in: {
+                $multiply: [
+                  "$$matched.score",  
+                  {
+                    $let: {
+                      vars: {
+                        
+                        sourceConcept: {
+                          $arrayElemAt: [
+                            { $filter: {
+                              input: paperConcepts,  
+                              as: "pc",
+                              cond: { $eq: ["$$pc.name", "$$matched.name"] }
+                            }},
+                            0
+                          ]
+                        }
+                      },
+                      in: "$$sourceConcept.score"  
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }},
+      { $match: { sharedConceptScore: { $gt: 0 } } },
+      { $sort: { sharedConceptScore: -1 } },
+      { $limit: 15}
+    ]);
+    
+    res.json(data);
+    } catch (err) { 
+      res.status(500).json({ error: err.message }); 
+    }
+    });
+
+app.get("/api/keywords", async (req, res) => {
+  try {
+    const limit = Math.min(50, Math.max(5, parseInt(req.query.limit, 10) || 20));
+    const data = await Paper.aggregate([
+      { $unwind: "$keywords" },
+      { $group: { _id: "$keywords", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: limit}
+    ]);
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// 4. Concept Evolution (Stacked Area Chart)
+app.get("/api/concept-evolution", async (req, res) => {
   try {
     const totalPapers = await Paper.countDocuments();
     

@@ -72,6 +72,7 @@ function HomePage({ onSearchComplete }) {
           pollRef.current = null;
           setTimeout(() => onSearchComplete(termRef.current), 500);
         } else if (p.status === 'error') {
+          
           clearInterval(pollRef.current);
           pollRef.current = null;
           setError(p.error || 'Fetch failed');
@@ -102,6 +103,7 @@ function HomePage({ onSearchComplete }) {
       );
       startPolling();
     } catch (err) {
+      
       setError(err.response?.data?.error || err.message || 'Failed to start fetch');
       setIsLoading(false);
       setProgress(null);

@@ -2,6 +2,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import TopicChart from './TopicChart';
 import PaperForceGraph from './PaperForceGraph';
+import BarGraph from './Bargraph'
+import WordCloud from './WordCloud'
+import AuthorBarChart from './AuthorBarChart'
 
 const font = "'Consolas', monospace";
 const TOPIC_COLOR_PALETTE = [
@@ -65,7 +68,7 @@ function TrendSparkline({ values, strokeColor }) {
   );
 }
 
-function DashboardPage({ searchTerm, onNewSearch }) {
+function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}) {
   const [stats, setStats] = useState(null);
   const [evolutionData, setEvolutionData] = useState([]);
   const [topTerminologies, setTopTerminologies] = useState([]);
@@ -76,9 +79,11 @@ function DashboardPage({ searchTerm, onNewSearch }) {
   const [citationSpacing, setCitationSpacing] = useState(100);
   const [focusedPaperId, setFocusedPaperId] = useState(null);
   const [isSyncing, setIsSyncing] = useState(true);
-
+  const [topKeywords, setTopKeywords] = useState([]);
+  const [authors, setAuthors] = useState([]);
   const pollInterval = useRef(null);
 
+  
   const fetchData = useCallback(async () => {
     try {
       // 1. Pointed to correct backend URL and correct route
@@ -92,14 +97,13 @@ function DashboardPage({ searchTerm, onNewSearch }) {
         setIsSyncing(false);
         if (pollInterval.current) clearInterval(pollInterval.current);
 
-        // 3. Pointed all API calls to localhost:5000
-        const [resEvo, resTerminology, resNetwork, resTopPapers] = await Promise.allSettled([
+        const [resEvo, resTerminology, resNetwork, resTopPapers,resKeywords,resAuthors] = await Promise.allSettled([
           axios.get('http://localhost:5000/api/topic-timeline?limit=8'),
-          axios.get('http://localhost:5000/api/terminology'),
-          axios.get(`http://localhost:5000/api/paper-network?limit=${dashboardStats.totalPapers}`),
-          
-          // Remove the ?limit=20 parameter so it fetches everything
-          axios.get('http://localhost:5000/api/top-cited') 
+          axios.get('http://localhost:5000/api/terminology'), 
+          axios.get('http://localhost:5000/api/paper-network?limit=20'),
+          axios.get('http://localhost:5000/api/top-cited?limit=20'),
+          axios.get('http://localhost:5000/api/keywords?limit=100'),
+          axios.get('http://localhost:5000/api/authors')
         ]);
 
         if (resEvo.status === 'fulfilled') {
@@ -119,6 +123,10 @@ function DashboardPage({ searchTerm, onNewSearch }) {
         }
         if (resTopPapers.status === 'fulfilled') {
           setTopPapers(Array.isArray(resTopPapers.value.data) ? resTopPapers.value.data : []);
+        }if (resKeywords.status === 'fulfilled') {
+          setTopKeywords(Array.isArray(resKeywords.value.data) ? resKeywords.value.data : []);
+        }if (resAuthors.status === 'fulfilled') {
+          setAuthors(Array.isArray(resAuthors.value.data) ? resAuthors.value.data : []);
         }
       }
     } catch (err) {
