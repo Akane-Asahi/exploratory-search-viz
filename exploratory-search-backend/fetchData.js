@@ -52,6 +52,7 @@ const paperSchema = new mongoose.Schema({
   citationsByYear: [{
     year: Number,
     count: Number
+  }]
 });
 
 const Paper = mongoose.models.Paper || mongoose.model("Paper", paperSchema);
