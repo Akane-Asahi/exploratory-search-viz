@@ -1,15 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import HomePage from './HomePage';
 import DashboardPage from './DashboardPage';
 import SinglePaperDashboard from './SinglePaperDashboard'
+import AuthorDashboardPage from './AuthorDashboardPage'
 
 function App() {
   const [searchTerm, setSearchTerm] = useState(null);
   const [searchPaper, setPaper] = useState(null);
+  const [searchAuthor, setAuthor] = useState(null);
   
 
   if (!searchTerm) {
     return <HomePage onSearchComplete={(term) => setSearchTerm(term)} />;
+  }
+
+  if (searchAuthor){
+    return (
+    <AuthorDashboardPage
+      key={searchAuthor._id}
+      author={searchAuthor}
+      onReturn={() => setAuthor(null)} 
+      searchTerm={searchTerm}
+      onNewSearch={() => setSearchTerm(null)}
+      onSelectPaper={(paper) => {setPaper(paper);}}
+      onSelectAuthor={(author) => setAuthor(author)}
+      /> )
   }
 
   if (searchPaper ){
@@ -22,6 +37,7 @@ function App() {
      searchTerm={searchTerm}
      onNewSearch={() => setSearchTerm(null)}
      onSelectPaper={(paper) => {setPaper(paper);}}
+     onSelectAuthor={(author) => setAuthor(author)}
      /> )
   } 
   
@@ -32,6 +48,7 @@ function App() {
       searchTerm={searchTerm}
       onNewSearch={() => setSearchTerm(null)}
       onSelectPaper={(paper) => setPaper(paper)}
+      onSelectAuthor={(author) => setAuthor(author)}
     />
   );
 }

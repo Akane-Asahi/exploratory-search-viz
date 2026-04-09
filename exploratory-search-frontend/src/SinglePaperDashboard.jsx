@@ -59,7 +59,7 @@ function TrendSparkline({ values }) {
   );
 }
 
-function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelectPaper }) {
+function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelectPaper,onSelectAuthor }) {
   const [stats, setStats] = useState(null);
   const [evolutionData, setEvolutionData] = useState([]);
   const [topTerminologies, setTopTerminologies] = useState([]);
@@ -89,7 +89,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
           axios.get('http://localhost:5000/api/keywords?limit=100'),
           axios.get(`http://localhost:5000/api/yearly-citations/${paper._id}`),
           axios.get(`http://localhost:5000/api/closest-papers/${paper._id}`),
-          axios.get(`http://localhost:5000/api/author-paper/${paper._id}`)
+          axios.get(`http://localhost:5000/api/paper-authors/${paper._id}`)
         ]);
 
         if (resEvo.status === 'fulfilled') {
@@ -227,7 +227,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
           <div style={{ display: 'flex', flexDirection: 'column' , gap: '10px', alignItems: 'stretch', flex: '1' }} >
             <div style={{ ...panelStyle, flex: 1.75, height: '1000px' }}>
               <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
-                Visualization here
+                Authors
               </p>
               <div style={{ height: '588px' }}>
                 {authorPaper?.length > 0 ? (

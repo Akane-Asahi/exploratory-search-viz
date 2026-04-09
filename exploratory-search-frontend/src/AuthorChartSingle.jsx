@@ -19,7 +19,8 @@ function AuthorChartSingle({ rawData }) {
       .map(d => ({
         count: d.count,
         cites: d.citations, 
-        name: d._id
+        name: d.name,
+        id: d._id
       }))
       .sort((a, b) => a.count - b.count)
       .slice(0, 15);

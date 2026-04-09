@@ -1,4 +1,6 @@
+
 require("dotenv").config();
+const { ObjectId } =  require('mongodb');
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -59,7 +61,7 @@ app.get("/api/authors", async (req, res) => {
     
     const data = await Paper.aggregate([
       { $unwind: "$authors" },
-      { $group: { _id: "$authors.name", count: { $sum: 1 }, citations: {$sum: "$citationCount" } }},
+      { $group: { _id: "$authors.name" , count: { $sum: 1 }, citations: {$sum: "$citationCount" } }},
       { $sort: { count: -1 } },
       { $limit: 15 }
     ]);
@@ -67,8 +69,9 @@ app.get("/api/authors", async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.get("/api/author-paper/:id", async (req, res) => {
+app.get("/api/paper-authors/:id", async (req, res) => {
   try {
+    
     const paper = await Paper.findById(req.params.id);
     if (!paper) return res.status(404).json({ error: "Paper not found" });
     const authorNames = paper.authors.map(a => a.name);
@@ -77,11 +80,111 @@ app.get("/api/author-paper/:id", async (req, res) => {
       { $match: { "authors.name": { $in: authorNames } } },
       { $unwind: "$authors" },
       { $match: { "authors.name": { $in: authorNames } } },
-      { $group: { _id: "$authors.name", count: { $sum: 1 }, citations: {$sum: "$citationCount" } }},
+      { $group: { _id: "$authors.name",  count: { $sum: 1 }, citations: {$sum: "$citationCount" } }},
       { $sort: { count: -1 } },
       
     ]);
     res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+ 
+app.get("/api/coauthors/:name", async (req, res) => {
+  try {
+  
+   
+    console.log(req.params.name);
+    
+    const authorName = req.params.name;
+   
+    
+    
+    //const author = paper.authors.map(a => a.name);
+
+    const data = await Paper.aggregate([
+      { $match: { "authors.name": authorName } },
+      { $unwind: "$authors" },
+      { $match: { "authors.name": { $ne: authorName } } },
+      {
+        $group: {
+          _id: "$authors.name",
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } }
+    ]);
+    
+    
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get("/api/author-papers/:name", async (req, res) => {
+  try {
+  
+   
+    console.log(req.params.name);
+    const authorName = req.params.name;
+    
+    const data = await Paper.aggregate([
+      
+      { $match: { "authors.name": authorName } },
+      {$sort: {citationCount: -1}}
+      
+      
+    ]);
+    
+    
+    
+    
+    res.json(data);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get("/api/author-citation/:name", async (req, res) => {
+  try {
+  
+   
+    console.log(req.params.name);
+    const authorName = req.params.name;
+    
+    const data = await Paper.aggregate([
+      
+      { $match: { "authors.name": authorName } },
+
+      
+      { $unwind: "$citationsByYear" },
+
+      {
+        $group: {
+          _id: "$citationsByYear.year",
+          count: { $sum: "$citationsByYear.count" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          year: "$_id",
+          count: 1
+        }
+      },
+      
+
+      { $sort: { count: 1 } }
+    ]);
+    
+    const currentYear = new Date().getFullYear();
+    const years = data.map(d => d.year);
+    const startYear = Math.min(...years);
+
+    const map = new Map(data.map(d => [d.year, d.count]));
+
+    const filled = [];
+    for (let y = startYear; y <= currentYear; y++) {
+      filled.push({ year: y, count: map.get(y) ?? 0 });
+    }
+    
+    
+    res.json(filled);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

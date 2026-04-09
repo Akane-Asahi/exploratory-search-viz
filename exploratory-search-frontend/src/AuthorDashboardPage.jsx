@@ -4,7 +4,9 @@ import TopicChart from './TopicChart';
 import PaperForceGraph from './PaperForceGraph';
 import BarGraph from './Bargraph'
 import WordCloud from './WordCloud'
-import AuthorBarChart from './AuthorBarChart'
+import CitedLineChart from './CitedLineChart';
+import AuthorChartSingle from './AuthorChartSingle';
+import SinglePaperDashboard from './SinglePaperDashboard';
 
 const font = "'Consolas', monospace";
 
@@ -30,35 +32,8 @@ const panelStyle = {
   overflow: 'hidden'
 };
 
-function TrendSparkline({ values }) {
-  const points = Array.isArray(values) ? values : [];
-  if (points.length === 0) return <span style={{ color: '#94a3b8' }}>No data</span>;
 
-  const width = 140;
-  const height = 34;
-  const min = Math.min(...points);
-  const max = Math.max(...points);
-  const range = Math.max(1, max - min);
-  const coords = points.map((v, i) => {
-    const x = (i / Math.max(1, points.length - 1)) * (width - 8) + 4;
-    const y = height - 4 - ((v - min) / range) * (height - 10);
-    return `${x},${y}`;
-  }).join(' ');
-  const trendUp = points[points.length - 1] >= points[0];
-
-  return (
-    <svg width={width} height={height}>
-      <polyline
-        fill="none"
-        stroke={trendUp ? '#2563eb' : '#64748b'}
-        strokeWidth="2"
-        points={coords}
-      />
-    </svg>
-  );
-}
-
-function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}) {
+function AuthorDashboard({ author,onReturn, searchTerm, onNewSearch, onSelectPaper }) {
   const [stats, setStats] = useState(null);
   const [evolutionData, setEvolutionData] = useState([]);
   const [topTerminologies, setTopTerminologies] = useState([]);
@@ -66,26 +41,32 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}
   const [topPapers, setTopPapers] = useState([]);
   const [isSyncing, setIsSyncing] = useState(true);
   const [topKeywords, setTopKeywords] = useState([]);
-  const [authors, setAuthors] = useState([]);
+  const [citHisory, setCitHistory] = useState([]);
+  const [closestPapers, setClosestPapers] = useState([]);
+  const [coauthorPage, setCoAuthor] = useState([]);
+  const [authorCite, setAuthorCite] = useState([]);
+  const [authorPapers, setAuthorPapers] = useState([]);
   const pollInterval = useRef(null);
 
-  
   const fetchData = useCallback(async () => {
     try {
-      const resStats = await axios.get('/api/dashboard-stats');
+      const resStats = await axios.get('http://localhost:5000/api/dashboard-stats');
       setStats(resStats.data);
 
       if (resStats.data.totalPapers > 0) {
         setIsSyncing(false);
         if (pollInterval.current) clearInterval(pollInterval.current);
-
-        const [resEvo, resTerminology, resNetwork, resTopPapers,resKeywords,resAuthors] = await Promise.allSettled([
+        
+        const [resEvo, resTerminology, resNetwork, resTopPapers,resKeywords,resCoauthorPage,resAuthorCitation,resAuthorPapers] = await Promise.allSettled([
           axios.get('http://localhost:5000/api/topic-timeline?limit=8'),
           axios.get('http://localhost:5000/api/terminology'), 
           axios.get('http://localhost:5000/api/paper-network?limit=20'),
           axios.get('http://localhost:5000/api/top-cited?limit=20'),
           axios.get('http://localhost:5000/api/keywords?limit=100'),
-          axios.get('http://localhost:5000/api/authors')
+          axios.get(`http://localhost:5000/api/coauthor/${author.name}`),
+          axios.get(`http://localhost:5000/api/author-citation/${author.name}`),
+          axios.get(`http://localhost:5000/api/author-papers/${author.name}`)
+         
         ]);
 
         if (resEvo.status === 'fulfilled') {
@@ -105,8 +86,12 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}
           setTopPapers(Array.isArray(resTopPapers.value.data) ? resTopPapers.value.data : []);
         }if (resKeywords.status === 'fulfilled') {
           setTopKeywords(Array.isArray(resKeywords.value.data) ? resKeywords.value.data : []);
-        }if (resAuthors.status === 'fulfilled') {
-          setAuthors(Array.isArray(resAuthors.value.data) ? resAuthors.value.data : []);
+        }if (resCoauthorPage.status === 'fulfilled') {
+          setCoAuthor(Array.isArray(resCoauthorPage.value.data) ? resCoauthorPage.value.data : []);
+        }if (resAuthorCitation.status === 'fulfilled') {
+          setAuthorCite(Array.isArray(resAuthorCitation.value.data) ? resAuthorCitation.value.data : []);
+        }if (resAuthorPapers.status === 'fulfilled') {
+          setAuthorPapers(Array.isArray(resAuthorPapers.value.data) ? resAuthorPapers.value.data : []);
         }
       }
     } catch (err) {
@@ -140,38 +125,54 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}
         <p style={{ fontFamily: "'Hanson', sans-serif", fontWeight: 'bold', fontSize: '16px', color: '#6b7280', margin: 0 }}>
           Your Next Research
         </p>
+        
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           {isSyncing && <span style={{ color: '#6b7280', fontFamily: font, fontSize: '11px' }}>Syncing data...</span>}
+          <button onClick={onReturn} style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280', backgroundColor: '#f9fafb', border: '1px solid #eeeff0', borderRadius: '100px', padding: '10px 22px', cursor: 'pointer', minWidth: '215px' }}>
+            Return
+          </button>
           <button onClick={onNewSearch} style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280', backgroundColor: '#f9fafb', border: '1px solid #eeeff0', borderRadius: '100px', padding: '10px 22px', cursor: 'pointer', minWidth: '215px' }}>
             Search another topic
-          </button>
+          </button> 
         </div>
       </div>
 
       <div style={{ padding: '15px 30px 30px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ padding: '0 0 4px' }}>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '10px' }}>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '16px', margin: 0 }}>Metrics</p>
-            <p style={{ fontFamily: "'Inter', sans-serif", fontSize: '24px', lineHeight: '41px', margin: 0 }}>{` → ${searchTerm}`}</p>
-          </div>
+            <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '16px', margin: 0 }}>Author</p>
+            {(() => {
+              //const doiValue = (paper.doi || '').trim();
+              
+              /*const normalizedDoiLink = doiValue
+                ? (doiValue.startsWith('http') ? doiValue : `https://doi.org/${doiValue}`)
+                : '';
+              const link = normalizedDoiLink || paper.openAlexUrl || paper.openAlexId || '';*/
+              return (
+                <p  style={{ color: 'black', textDecoration: 'none' }}>
+                  {` → ${author.name}`} 
+                </p>
+              );
+            })()} 
+          </div> 
           <div style={{ display: 'flex', gap: '10px' }}>
             <div style={cardStyle}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280' }}>Total Papers</span>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '38px', color: '#111827' }}>{stats?.totalPapers ?? '0'}</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280' }}>Total Citations</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '38px', color: '#111827' }}>{author?.cites ?? '0' }</span>
             </div>
             <div style={cardStyle}>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280' }}>Active Concepts</span>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '38px', color: '#111827' }}>{stats?.activeConcepts ?? '0'}</span>
             </div>
             <div style={cardStyle}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280' }}>Total Keywords</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280' }}>Keywords</span>
               <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '38px', color: '#111827' }}>
-                {stats?.totalKeywords ?? 0}
+                
               </span>
             </div>
             <div style={cardStyle}>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280' }}>No. of Terminologies</span>
-              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '38px', color: '#111827' }}>{stats?.totalTerminologies ?? 0}</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280' }}>Year</span>
+              <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '38px', color: '#111827' }}>{/*paper?.year ?? 0*/}</span>
             </div>
           </div>
         </div>
@@ -179,84 +180,16 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}
         <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: '0 0 42%' }}>
             <div style={{ ...panelStyle, height: '315px' }}>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '18px', margin: '0 0 10px 0' }}>Ranked Table</p>
-              <div style={{ width: '100%', height: '252px', overflowY: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, backgroundColor: '#fff', border: '1px solid #eeeff0', borderRadius: '10px', overflow: 'hidden' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#f9fafb' }}>
-                      {['Keyword', 'Cited Papers', 'Trend'].map((h) => (
-                        <th key={h} style={{ textAlign: 'left', fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 500, color: '#111827', padding: '10px 12px', borderBottom: '1px solid #eeeff0' }}>
-                          {h}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {topTerminologies.map((term) => (
-                      <tr key={term.name}>
-                        <td style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>{term.name}</td>
-                        <td style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>{term.count}</td>
-                        <td style={{ padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}><TrendSparkline values={term.trend} /></td>
-                      </tr>
-                    ))}
-                    {topTerminologies.length === 0 && (
-                      <tr>
-                        <td colSpan={3} style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280', padding: '12px', textAlign: 'center' }}>
-                          {isSyncing ? 'Waiting for terminology extraction...' : 'No terminology data found for this search.'}
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div style={{ ...panelStyle, height: '315px' }}>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
-                Topic Growth Timeline (Line Chart)
-              </p>
-              <div style={{ height: '250px' }}>
-                {evolutionData?.data?.length > 0 ? <TopicChart rawData={evolutionData} /> : <p style={{ fontFamily: font }}>Waiting for data...</p>}
-              </div>
-            </div>
-
-              <div style={{ ...panelStyle, flex: 1 ,height: '315px' }}>
                 <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
-                  Most Comman topics
+                  Yearly Citation Count
                 </p>
                 <div style={{ height: '250px' }}>
-                  {topKeywords?.length > 0 ? <WordCloud rawData={topKeywords} /> : <p style={{ fontFamily: font }}>Waiting for data...</p>}
+                  {authorCite?.length > 0 ? <CitedLineChart rawData={authorCite} /> : <p style={{ fontFamily: font }}>Waiting for data...</p> }
                 </div>
-              </div>
-            
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column' , gap: '10px', alignItems: 'stretch', flex: '1' }} >
-            <div style={{ ...panelStyle, flex: 1.75, height: '1000px' }}>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
-                Paper Connection Force Graph (Top 20 by Citations)
-              </p>
-              <div style={{ height: '588px' }}>
-                {paperNetwork.nodes.length > 0 ? (
-                  <PaperForceGraph data={paperNetwork} />
-                ) : (
-                  <p style={{ fontFamily: font }}>Waiting for paper network...</p>
-                )}
-              </div>
-              
             </div>
-            <div style={{ ...panelStyle, flex: 1 ,height: '415px' }}>
-                <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
-                  Most Comman topics
-                </p>
-                <div style={{ height: '350px' }}>
-                  {authors?.length > 0 ? <AuthorBarChart rawData={authors}  selectAuthor={onSelectAuthor} /> : <p style={{ fontFamily: font }}>Waiting for data...</p>}
-                </div>
-              </div>
-            </div>
-          </div>
 
-        <div style={{ ...panelStyle }}>
-          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '18px', margin: '0 0 10px 0' }}>Top Papers</p>
+            <div style={{ ...panelStyle }}>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '18px', margin: '0 0 10px 0' }}>Closest Papers</p>
           <div style={{ width: '100%', maxHeight: '320px', overflowY: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, backgroundColor: '#fff', border: '1px solid #eeeff0', borderRadius: '10px', overflow: 'hidden' }}>
               <thead>
@@ -269,21 +202,19 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}
                 </tr>
               </thead>
               <tbody>
-                {topPapers.map((paper) => {
+                {authorPapers.map((paper) => {
                   const authors = (paper.authors || []).map((a) => a?.name).filter(Boolean);
                   const doiValue = (paper.doi || '').trim();
                   const normalizedDoiLink = doiValue
                     ? (doiValue.startsWith('http') ? doiValue : `https://doi.org/${doiValue}`)
                     : '';
                   const link = normalizedDoiLink || paper.openAlexUrl || paper.openAlexId || '';
+                  const score = (paper.sharedConceptScore * 100 || 0 ).toFixed(2);
                   return (
                     <tr key={paper._id || `${paper.title}-${paper.citationCount}`}>
                       <td style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>
                         {link ? (
-                          <span
-                                onClick={() => onSelectPaper(paper)}
-                                style={{ color: '#2563eb', textDecoration: 'none', cursor: 'pointer' }}
-                              >
+                          <span onClick={() => onSelectPaper(paper)}  style={{ color: '#2563eb', textDecoration: 'none', cursor: 'pointer' }}>
                                 {paper.title || 'Untitled'}
                               </span>
                         ) : (
@@ -302,6 +233,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}
                       >
                         {authors.length}
                       </td>
+                      
                     </tr>
                   );
                 })}
@@ -316,9 +248,34 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}
             </table>
           </div>
         </div>
+
+              
+            
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' , gap: '10px', alignItems: 'stretch', flex: '1' }} >
+            <div style={{ ...panelStyle, flex: 1.75, height: '1000px' }}>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 500, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
+                Authors
+              </p>
+              <div style={{ height: '588px' }}>
+                {/*authorPaper?.length > 0 ? (
+                  <AuthorChartSingle rawData={authorPaper} />
+                ) : (
+                  <p style={{ fontFamily: font }}>Waiting for paper network...</p>
+                )*/} 
+              </div> 
+              
+            </div>
+            <div style={{ ...panelStyle, flex: 1 ,height: '315px' }}>
+                
+              </div>
+            </div>
+          </div>
+
+        
       </div>
     </div>
   );
 }
 
-export default DashboardPage;
+export default AuthorDashboard;
