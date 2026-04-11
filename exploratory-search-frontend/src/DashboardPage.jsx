@@ -4,7 +4,7 @@ import TopicChart from './TopicChart';
 import PaperForceGraph from './PaperForceGraph';
 import BarGraph from './Bargraph'
 import WordCloud from './WordCloud'
-import AuthorBarChart from './AuthorBarChart'
+import AuthorBarChart from './AuthorBarChartN'
 
 const font = "'Consolas', monospace";
 const TOPIC_COLOR_PALETTE = [
@@ -68,7 +68,7 @@ function TrendSparkline({ values, strokeColor }) {
   );
 }
 
-function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}) {
+function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor, onSelectWord}) {
   const [stats, setStats] = useState(null);
   const [evolutionData, setEvolutionData] = useState([]);
   const [topTerminologies, setTopTerminologies] = useState([]);
@@ -79,7 +79,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}
   const [citationSpacing, setCitationSpacing] = useState(100);
   const [focusedPaperId, setFocusedPaperId] = useState(null);
   const [isSyncing, setIsSyncing] = useState(true);
-  const [topKeywords, setTopKeywords] = useState([]);
+  const [topTags, setTopTags] = useState([]);
   const [authors, setAuthors] = useState([]);
   const pollInterval = useRef(null);
 
@@ -97,12 +97,12 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}
         setIsSyncing(false);
         if (pollInterval.current) clearInterval(pollInterval.current);
 
-        const [resEvo, resTerminology, resNetwork, resTopPapers,resKeywords,resAuthors] = await Promise.allSettled([
+        const [resEvo, resTerminology, resNetwork, resTopPapers,resTags,resAuthors] = await Promise.allSettled([
           axios.get('http://localhost:5000/api/topic-timeline?limit=8'),
           axios.get('http://localhost:5000/api/terminology'), 
           axios.get('http://localhost:5000/api/paper-network?limit=20'),
           axios.get('http://localhost:5000/api/top-cited?limit=20'),
-          axios.get('http://localhost:5000/api/keywords?limit=100'),
+          axios.get('http://localhost:5000/api/tags?limit=100'),
           axios.get('http://localhost:5000/api/authors')
         ]);
 
@@ -123,8 +123,8 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}
         }
         if (resTopPapers.status === 'fulfilled') {
           setTopPapers(Array.isArray(resTopPapers.value.data) ? resTopPapers.value.data : []);
-        }if (resKeywords.status === 'fulfilled') {
-          setTopKeywords(Array.isArray(resKeywords.value.data) ? resKeywords.value.data : []);
+        }if (resTags.status === 'fulfilled') {
+          setTopTags(Array.isArray(resTags.value.data) ? resTags.value.data : []);
         }if (resAuthors.status === 'fulfilled') {
           setAuthors(Array.isArray(resAuthors.value.data) ? resAuthors.value.data : []);
         }
@@ -297,18 +297,16 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}
                       >
                         <td style={{ width: '40%', fontFamily: "'Inter', sans-serif", fontSize: '12px', color: isFocused ? '#ffffff' : '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>
                           {link ? (
-                            <a
-                              href={link}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              style={{ color: isFocused ? '#93c5fd' : '#2563eb', textDecoration: 'none' }}
-                            >
-                              {paper.title || 'Untitled'}
-                            </a>
-                          ) : (
-                            (paper.title || 'Untitled')
-                          )}
+                            
+                          <span onClick={() => onSelectPaper(paper)}  style={{ color: '#2563eb', textDecoration: 'none', cursor: 'pointer' }}>
+                                {paper.title || 'Untitled'}
+                              </span>
+                        ) : (
+                          (paper.title || 'Untitled')
+                        )}
+                            
+                              
+                          
                         </td>
                         <td style={{ width: '8%', fontFamily: "'Inter', sans-serif", fontSize: '12px', color: isFocused ? '#ffffff' : '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>
                           {paper.citationCount || 0}
@@ -466,6 +464,36 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor}
               <div style={{ height: '216px' }}>
                 {evolutionData?.data?.length > 0 ? (
                   <TopicChart rawData={evolutionData} conceptColors={topicColorMap} />
+                ) : (
+                  <p style={{ fontFamily: font }}>Waiting for data...</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style={{ ...panelStyle, height: '500px' }}>
+          <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '18px', margin: '0 0 10px 0' }}>Authors</p>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch', height: '390px' }}>
+            
+            <div style={{ flex: 1.5, minWidth: 0, border: '1px solid #eeeff0', borderRadius: '10px', padding: '8px 10px' }}>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '22px', margin: '0 0 6px 0' }}>
+                Top Author Chart
+              </p>
+              <div style={{ height: '350px' }}>
+                {authors?.length > 0 ? (
+                  <AuthorBarChart rawData={authors} selectAuthor={onSelectAuthor} />
+                ) : (
+                  <p style={{ fontFamily: font }}>Waiting for data...</p>
+                )}
+              </div>
+            </div>
+             <div style={{ flex: 1, minWidth: 0, border: '1px solid #eeeff0', borderRadius: '10px', padding: '8px 10px' }}>
+              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '22px', margin: '0 0 6px 0' }}>
+                Related Concepts
+              </p>
+              <div style={{ height: '400px' }}>
+                {authors?.length > 0 ? (
+                  <WordCloud rawData={topTags} selectWord={onSelectWord}  />
                 ) : (
                   <p style={{ fontFamily: font }}>Waiting for data...</p>
                 )}

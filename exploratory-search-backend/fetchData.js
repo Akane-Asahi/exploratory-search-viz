@@ -29,6 +29,22 @@ const passesQualityThresholds = (work) => {
   return true; 
 };
 
+function normalizeMath(text = "") {
+  return text
+    
+    .replace(/\\ensuremath\{(.*?)\}/g, "$1")
+
+    
+    .replace(/\/spl Theta\//g, "Θ")
+    .replace(/\/spl radic\//g, "√")
+
+    
+    .replace(/\\delta/g, "δ")
+    .replace(/\\theta/g, "θ")
+    .replace(/\\alpha/g, "α")
+    .replace(/\\beta/g, "β");
+}
+
 const paperSchema = new mongoose.Schema({
   openAlexId: { type: String, unique: true },
   openAlexUrl: String,
@@ -38,6 +54,7 @@ const paperSchema = new mongoose.Schema({
   citationCount: Number,
   timeBucket: String,
   venue: String,
+  abstract: String,
   authors: [{ authorId: String, name: String }],
   keywords: [String],
   primaryTopic: String,
@@ -203,7 +220,14 @@ async function fetchAndStore(searchTerm, onProgress, category = "All Computer Sc
         .slice(0, 10); 
       
       if (tags.length === 0) tags = [work.primary_topic?.display_name || "Unknown Topic"];
-
+      const abstract = work?.abstract_inverted_index ? Object.entries(work.abstract_inverted_index).reduce((acc, [word,pos]) => {
+        pos.forEach(p => acc[p] = normalizeMath(word));
+        return acc;
+        }, [])
+        .join(" ")
+        : "";
+     
+      
       docs.push({
         openAlexId: work.id || "",
         openAlexUrl: work.primary_location?.landing_page_url || "",
@@ -214,10 +238,13 @@ async function fetchAndStore(searchTerm, onProgress, category = "All Computer Sc
         citationCount: Number(work.cited_by_count || 0),
         timeBucket: work.publication_year >= currentYear - 2 ? "recent" : "historical",
         venue: work.primary_location?.source?.display_name || "Unknown Venue",
+        abstract: abstract,
+        
         authors: (work.authorships || [])
           .map((a) => ({
             authorId: a.author?.id || "",
-            name: a.author?.display_name || ""
+            name: a.author?.display_name || "",
+            
           }))
           .filter((a) => a.name),
         keywords: (work.keywords || []).map((k) => k?.display_name || "").filter(Boolean).slice(0, 10),

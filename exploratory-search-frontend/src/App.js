@@ -17,13 +17,14 @@ function App() {
   if (searchAuthor){
     return (
     <AuthorDashboardPage
-      key={searchAuthor._id}
+      key={searchAuthor.name}
       author={searchAuthor}
       onReturn={() => setAuthor(null)} 
       searchTerm={searchTerm}
       onNewSearch={() => setSearchTerm(null)}
-      onSelectPaper={(paper) => {setPaper(paper);}}
+      onSelectPaper={(paper) => {setPaper(paper); setAuthor(null);}}
       onSelectAuthor={(author) => setAuthor(author)}
+      
       /> )
   }
 
@@ -37,7 +38,7 @@ function App() {
      searchTerm={searchTerm}
      onNewSearch={() => setSearchTerm(null)}
      onSelectPaper={(paper) => {setPaper(paper);}}
-     onSelectAuthor={(author) => setAuthor(author)}
+     onSelectAuthor={(author) => {setAuthor(author); setPaper(null);}}
      /> )
   } 
   
@@ -45,10 +46,12 @@ function App() {
 
   return (
     <DashboardPage
+      key={searchTerm}
       searchTerm={searchTerm}
       onNewSearch={() => setSearchTerm(null)}
       onSelectPaper={(paper) => setPaper(paper)}
       onSelectAuthor={(author) => setAuthor(author)}
+      onSelectWord={(word) => setSearchTerm(word)}
     />
   );
 }

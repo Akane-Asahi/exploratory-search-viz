@@ -1,20 +1,27 @@
 import React, { useRef, useEffect } from 'react';
 import * as d3 from 'd3';
 
-function CitedLineChart({ rawData }) {
+function CitedLineChart({ rawData, type }) {
   const containerRef = useRef();
   const svgRef = useRef();
 
   useEffect(() => {
     if (!rawData || !Array.isArray(rawData) || rawData.length === 0) return;
-
-    
+    let colour;
+    let height;
+    if (type === "paper"){
+      colour = "lightblue";
+      height = 300;
+    }else if (type === "author"){
+      colour = "coral";
+      height = 400;
+    }
     const marginTop = 30;
-    const marginRight = 120;
+    const marginRight = 40;
     const marginBottom = 40;
-    const marginLeft = 200;
+    const marginLeft = 50;
     const width = 928;
-    const height = 350;
+    
 
     // Flatten and sort by count ascending (so highest is at top)
     const flatData = rawData
@@ -23,7 +30,9 @@ function CitedLineChart({ rawData }) {
         year: d.year
       }))
       .sort((a, b) => a.year - b.year)
-      .slice(0,7);
+      .filter((a) => a.year >= 2012);
+      
+      
 
     const x = d3.scaleLinear()
       .domain([d3.min(flatData, d => d.year), d3.max(flatData, d => d.year)])
@@ -45,14 +54,16 @@ function CitedLineChart({ rawData }) {
     svg.attr("width", width)
       .attr("height", height)
       .attr("viewBox", [0, 0, width, height])
-      .attr("style", "max-width: 100%; height: auto; font: 10px sans-serif;");
+      .attr("style", "max-width: 100%; height: auto; font: 25px sans-serif;");
 
     svg.append("g")
       .attr("transform", `translate(0,${height - marginBottom})`)
       .call(d3.axisBottom(x)
-      .ticks(flatData.length)
+      .ticks(Math.max(flatData.length,10))
       .tickFormat(d3.format("d")) 
-      .tickSizeOuter(0));
+      .tickSizeOuter(0))
+      .call(g => g.selectAll("text")
+        .style("font-size", "15px"));
 
   
     svg.append("g")
@@ -61,15 +72,21 @@ function CitedLineChart({ rawData }) {
       .call(g => g.select(".domain").remove())
       .call(g => g.selectAll(".tick line").clone()
           .attr("x2", width - marginLeft - marginRight)
-          .attr("stroke-opacity", 0.1));
+          .attr("stroke-opacity", 0.1))
+      .call(g => g.selectAll("text")
+          .style("font-size", "15px"));
       
-
+    const texttoolCites = svg.append("text")
+      .style("opacity", 0)
+      .attr("font-size", "9px")
+      .attr("fill", colour);
 
     svg.append("path")
       .attr("fill", "none")
-      .attr("stroke", "steelblue")
-      .attr("stroke-width", 1.5)
+      .attr("stroke", colour)
+      .attr("stroke-width", 3)
       .attr("d", line(flatData));
+
     }, [rawData]);
 
   return (

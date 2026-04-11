@@ -32,9 +32,9 @@ function AuthorBarChart({ rawData, selectAuthor }) {
         
       }))
       .sort((b, a) => a.count - b.count)
-      .slice(0, 15);
+      .slice(0, 25);
 
-    const authorMap = new Map(flatData.map(d => [d.name, d]));
+    
     const x = d3.scaleBand()
       .domain(flatData.map(d => d.name))
       .range([marginLeft, width - marginRight])
@@ -98,7 +98,11 @@ function AuthorBarChart({ rawData, selectAuthor }) {
           .style("opacity", 1)
           .style("stroke", "none");
         texttoolCount.style("opacity", 0);
-    });
+    }).on("click", (event,d) =>{
+        selectAuthorRef.current({name: d.name});
+        
+
+      });
 
     const texttoolCites = svg.append("text")
       .style("opacity", 0)
@@ -132,7 +136,10 @@ function AuthorBarChart({ rawData, selectAuthor }) {
         .style("opacity", 1)
         .style("stroke", "none");
       texttoolCites.style("opacity", 0);
-    });
+    }).on("click", (event,d) =>{
+        
+        selectAuthorRef.current({name: d.name});
+      });
 
     
     
@@ -149,13 +156,9 @@ function AuthorBarChart({ rawData, selectAuthor }) {
       .style("text-anchor", "end")
       .style("cursor", "pointer")
       .style("color","blue")
-      .style("text-decoration","underline")
+      
       .on("click", (event,d) =>{
-        const fullAuthor = authorMap.get(d);
-        
-
-
-        selectAuthorRef.current(fullAuthor);
+        selectAuthorRef.current({name: d});
       });
 
     
