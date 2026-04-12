@@ -101,7 +101,9 @@ function AuthorDashboard({ author,onReturn, searchTerm, onNewSearch, onSelectPap
       console.error('Polling error:', err);
     }
   }, []);
-
+  const uniqueTags = [
+  ...new Set(authorPapers.flatMap(paper => paper.tags || []))
+  ].slice(0, 15);
   useEffect(() => {
     fetchData();
     pollInterval.current = setInterval(fetchData, 3000);
@@ -288,17 +290,47 @@ function AuthorDashboard({ author,onReturn, searchTerm, onNewSearch, onSelectPap
  
           </div>
           <div style={{ display: 'flex', flexDirection: 'column' , gap: '10px', alignItems: 'stretch', flex: '1' }} >
-            <div style={{ ...panelStyle, height: '460px' }}>
+            <div style={{ ...panelStyle, height: '380px' }}>
                 <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
                   Yearly Citation Count
                 </p>
-                <div style={{ height: '380px' }}>
+                <div style={{ height: '340px' }}>
                   {authorCite?.length > 0 ? <CitedLineChart rawData={authorCite} type={"author"} /> : <p style={{ fontFamily: font }}>Waiting for data...</p> }
                 </div>
             </div>
-            
+
+            <div style={{ ...panelStyle, height: '420px' }}>
+                <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
+                  Fields of Reasearch
+                </p>
+                <div style={{ 
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: "6px",
+                  maxHeight: "250px",        
+                  overflowY: "auto",
+                  scrollBehavior: "smooth"
+                }}  >
+                  {uniqueTags.map((tag, i) => (
+                    <span
+                      key={i}
+                      style={{
+                        padding: "4px 8px",
+                        borderRadius: "12px",
+                        backgroundColor: "#f0f2fc",
+                        color: "#3730a3",
+                        fontSize: "20px",
+                        border: "1px solid #c7d2fe",
+                        overflowY: "auto"
+                      }}>
+                        {tag}
+                      </span>
+                  ))}
+                </div>
             </div>
+            
           </div>
+        </div>
 
         
       </div>

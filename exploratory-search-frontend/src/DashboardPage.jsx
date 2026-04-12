@@ -980,7 +980,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
             </div>
           </div>
         </div>
-        <div style={{ ...panelStyle, height: '500px' }}>
+        <div style={{ ...panelStyle, height: '600px' }}>
           <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '18px', margin: '0 0 10px 0' }}>Authors</p>
           <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch', height: '390px' }}>
             

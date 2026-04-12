@@ -11,7 +11,7 @@ function CitedLineChart({ rawData, type }) {
     let height;
     if (type === "paper"){
       colour = "lightblue";
-      height = 300;
+      height = 400;
     }else if (type === "author"){
       colour = "coral";
       height = 400;
