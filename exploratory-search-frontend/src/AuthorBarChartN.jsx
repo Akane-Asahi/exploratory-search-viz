@@ -1,6 +1,40 @@
 import React, { useRef, useEffect } from 'react';
 import * as d3 from 'd3';
 
+function wrapText(text, width) {
+  text.each(function () {
+    const textSel = d3.select(this);
+    const words = textSel.text().split(/\s+/).reverse();
+    let word;
+    let line = [];
+    let lineNumber = 0;
+    const lineHeight = 1.1; // ems
+    const y = textSel.attr("y");
+    const dy = 0;
+
+    let tspan = textSel.text(null)
+      .append("tspan")
+      .attr("x", -10) // adjust for axis alignment
+      .attr("y", y)
+      .attr("dy", dy + "em");
+
+    while (word = words.pop()) {
+      line.push(word);
+      tspan.text(line.join(" "));
+      if (tspan.node().getComputedTextLength() > width) {
+        line.pop();
+        tspan.text(line.join(" "));
+        line = [word];
+        tspan = textSel.append("tspan")
+          .attr("x", -10)
+          .attr("y", y)
+          .attr("dy", ++lineNumber * lineHeight + dy + "em")
+          .text(word);
+      }
+    }
+  });
+}
+
 function AuthorBarChart({ rawData ,selectAuthor}) {
   const containerRef = useRef();
   const svgRef = useRef();
@@ -9,7 +43,8 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
   const axisRefLegend = useRef();
   const selectAuthorRef = useRef(selectAuthor);
   
-  const width = 928;
+  const container = document.getElementById("chart-container");
+  const width = container.clientWidth - 25;
   useEffect(() => {
     selectAuthorRef.current = selectAuthor;
   }, [selectAuthor]);
@@ -21,7 +56,7 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
     const marginRight = 60; 
     const marginBottom = 5;
     const marginLeft = 100;
-    const width = 928;
+    
     
 
     const citeColour = "red";
@@ -155,7 +190,9 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
     svg.append("g")
       .attr("transform", `translate(${marginLeft},0)`)
       .call(d3.axisLeft(y).tickSizeOuter(0))
-      .selectAll(".tick")
+      .style("fontsize",15)
+      .selectAll(".tick text")
+      .call(wrapText, 90)
       .on("click", (event,d) =>{
         selectAuthorRef.current({name: d});
       });

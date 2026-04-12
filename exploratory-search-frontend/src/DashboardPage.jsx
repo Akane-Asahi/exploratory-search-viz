@@ -161,9 +161,9 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
         if (pollInterval.current) clearInterval(pollInterval.current);
 
         const [resEvo, resTerminology, resNetwork, resTopPapers,resTags,resAuthors] = await Promise.allSettled([
-          axios.get('http://localhost:5000/api/topic-timeline?limit=8'),
+          axios.get('http://localhost:5000/api/topic-timeline'),
           axios.get('http://localhost:5000/api/terminology'), 
-          axios.get('http://localhost:5000/api/paper-network?limit=20'),
+          axios.get('http://localhost:5000/api/paper-network'),
           axios.get('http://localhost:5000/api/top-cited?limit=20'),
           axios.get('http://localhost:5000/api/tags?limit=100'),
           axios.get('http://localhost:5000/api/authors')
@@ -988,7 +988,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
               <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '22px', margin: '0 0 6px 0' }}>
                 Top Author Chart
               </p>
-              <div style={{ height: '350px' }}>
+              <div id = "chart-container" style={{ height: '350px' }}>
                 {authors?.length > 0 ? (
                   <AuthorBarChart rawData={authors} selectAuthor={onSelectAuthor} />
                 ) : (
