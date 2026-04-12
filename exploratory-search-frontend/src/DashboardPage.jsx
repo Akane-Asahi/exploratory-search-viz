@@ -934,7 +934,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
                           >
                             {favoriteKeywordSet.has(normalizeLabel(term.name)) ? '♥' : '♡'}
                           </button>
-                 evolutionData         <span
+                         <span
                             style={{
                               width: 8,
                               height: 8,
