@@ -6,12 +6,13 @@ import AuthorDashboardPage from './AuthorDashboardPage'
 
 function App() {
   const [searchTerm, setSearchTerm] = useState(null);
+  const [newTerm, setNewTerm] = useState("");
   const [searchPaper, setPaper] = useState(null);
   const [searchAuthor, setAuthor] = useState(null);
   
 
   if (!searchTerm) {
-    return <HomePage onSearchComplete={(term) => setSearchTerm(term)} />;
+    return <HomePage onSearchComplete={(term) => {setSearchTerm(term); setNewTerm("");}} inputTerm={newTerm} />;
   }
 
   if (searchAuthor){
@@ -23,7 +24,7 @@ function App() {
       searchTerm={searchTerm}
       onNewSearch={() => setSearchTerm(null)}
       onSelectPaper={(paper) => {setPaper(paper); setAuthor(null);}}
-      onSelectAuthor={(author) => setAuthor(author)}
+      onSelectAuthor={(author) => {setAuthor(author); setPaper(null);}}
       
       /> )
   }
@@ -37,13 +38,13 @@ function App() {
      onReturn={() => setPaper(null)} 
      searchTerm={searchTerm}
      onNewSearch={() => setSearchTerm(null)}
-     onSelectPaper={(paper) => {setPaper(paper);}}
+     onSelectPaper={(paper) => {setPaper(paper); setAuthor(null)}}
      onSelectAuthor={(author) => {setAuthor(author); setPaper(null);}}
      /> )
   } 
   
   
-
+  
   return (
     <DashboardPage
       key={searchTerm}
@@ -51,7 +52,9 @@ function App() {
       onNewSearch={() => setSearchTerm(null)}
       onSelectPaper={(paper) => setPaper(paper)}
       onSelectAuthor={(author) => setAuthor(author)}
-      onSelectWord={(word) => setSearchTerm(word)}
+      onSelectWord={(word) => { setNewTerm(word);       
+        setSearchTerm(null);
+      }}
     />
   );
 }

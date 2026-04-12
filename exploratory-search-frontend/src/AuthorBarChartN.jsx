@@ -92,7 +92,7 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
           .style("opacity", .5);
         texttoolCount
           .style("opacity", 1)
-          .attr("y", y(d.name) + ySub('count')  +8) 
+          .attr("y", y(d.name) + ySub('count')  +12) 
           .attr("x", x(d.count) +5)
           .text(formatCites(d.count));
 
@@ -131,7 +131,7 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
           .style("opacity", .5);
         texttoolCites
           .style("opacity", 1)
-          .attr("y", y(d.name) + ySub('cites')  +8) 
+          .attr("y", y(d.name) + ySub('cites')  +12) 
           .attr("x", xr(d.cites) +5)
           .text(formatCites(d.cites));
 
@@ -141,7 +141,7 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
         d3.select(this)
           .style("opacity", 1)
           .style("stroke", "none");
-        texttoolCount.style("opacity", 0);
+        texttoolCites.style("opacity", 0);
     }).on("click", (event,d) =>{
         selectAuthorRef.current({name: d.name});
       }); 
@@ -155,6 +155,7 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
     svg.append("g")
       .attr("transform", `translate(${marginLeft},0)`)
       .call(d3.axisLeft(y).tickSizeOuter(0))
+      .selectAll(".tick")
       .on("click", (event,d) =>{
         selectAuthorRef.current({name: d});
       });

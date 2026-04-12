@@ -5,7 +5,7 @@ import PaperForceGraph from './PaperForceGraph';
 import BarGraph from './Bargraph'
 import WordCloud from './WordCloud'
 import CitedLineChart from './CitedLineChart';  
-import AuthorChartSingle from './AuthorChartSingle';
+
 import SinglePaperDashboard from './SinglePaperDashboard';
 
 const font = "'Consolas', monospace";

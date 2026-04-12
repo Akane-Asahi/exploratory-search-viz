@@ -46,8 +46,8 @@ function ProgressBar({ saved, total }) {
   );
 }
 
-function HomePage({ onSearchComplete }) {
-  const [searchTerm, setSearchTerm] = useState('');
+function HomePage({ onSearchComplete,inputTerm }) {
+  const [searchTerm, setSearchTerm] = useState(inputTerm);
   const [category, setCategory] = useState('All Computer Science');
   const [sortBy, setSortBy] = useState('relevance');
   const [isLoading, setIsLoading] = useState(false);

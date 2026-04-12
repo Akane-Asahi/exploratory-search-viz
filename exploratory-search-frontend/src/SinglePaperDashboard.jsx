@@ -5,7 +5,7 @@ import PaperForceGraph from './PaperForceGraph';
 import BarGraph from './Bargraph'
 import WordCloud from './WordCloud'
 import CitedLineChart from './CitedLineChart';
-import AuthorChartSingle from './AuthorChartSingle';
+
 import { MathJax, MathJaxContext } from "better-react-mathjax";
 
 const font = "'Consolas', monospace";
@@ -354,7 +354,14 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
                     :( <p style = {{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>Key concepts</p>)  }
                     </div>
                     {conceptChart === "concepts" ? (
-                      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                      <div style={{ 
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "6px",
+                          maxHeight: "250px",        
+                          overflowY: "auto",
+                          scrollBehavior: "smooth"
+                        }}  >
                         {paper.tags?.map((tag, i) => (
                           <span
                             key={i}
@@ -373,7 +380,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
                         ))}
                       </div>
                     ) :
-                    (<div style= {{height: "200px", overflowY: "auto"}} ><p> <MathJax dynamic> {cleanMath(paper.abstract)}</MathJax> </p></div>)}
+                    (<div style= {{height: "200px", overflowY: "auto",marginBottom: "30px"}} ><p> <MathJax dynamic> {cleanMath(paper.abstract)}</MathJax> </p></div>)}
                   </div>
                 </div>
               </div>
