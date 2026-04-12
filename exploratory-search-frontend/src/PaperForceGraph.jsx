@@ -104,6 +104,72 @@ function formatPaperWithYear(title, year) {
   return `${safeTitle} (${safeYear})`;
 }
 
+function buildTerminologyList(paper) {
+  const terms = [
+    ...(Array.isArray(paper?.tags) ? paper.tags : []),
+    ...(Array.isArray(paper?.keywords) ? paper.keywords : []),
+    paper?.primaryTopic || ''
+  ]
+    .map((value) => (value || '').toString().trim())
+    .filter(Boolean);
+  return Array.from(new Set(terms));
+}
+
+function buildEdgePanelPayload(linkSprite, mode) {
+  const { parentData, childData } = getLinkParentChildData(linkSprite);
+  const edgeDetails = childData?.parentEdgeDetails || {};
+  if (mode === 'citation' && edgeDetails?.isSynthetic) {
+    return null;
+  }
+
+  const childTitle = childData?.fullTitle || childData?.name || edgeDetails?.citingTitle || 'Unknown paper';
+  const parentTitle = parentData?.fullTitle || parentData?.name || edgeDetails?.citedTitle || 'Unknown paper';
+  const sharedTerms = Array.isArray(edgeDetails?.sharedTerms) ? edgeDetails.sharedTerms : [];
+  const childUniqueTerms = Array.isArray(edgeDetails?.childUniqueTerms) ? edgeDetails.childUniqueTerms : [];
+  const parentUniqueTerms = Array.isArray(edgeDetails?.parentUniqueTerms) ? edgeDetails.parentUniqueTerms : [];
+  const allTerms = Array.from(new Set([...sharedTerms, ...childUniqueTerms, ...parentUniqueTerms]));
+
+  return {
+    title: mode === 'citation' ? `${childTitle} cites ${parentTitle}` : `${childTitle} connected with ${parentTitle}`,
+    citations: Number(childData?.value || 0),
+    terminologies: allTerms
+  };
+}
+
+function lerpChannel(start, end, t) {
+  return Math.round(start + ((end - start) * t));
+}
+
+function normalizeFavoriteTerm(value) {
+  return (value || '').toString().trim().toLowerCase();
+}
+
+function getConfidenceNodeColor(confidencePercent) {
+  const clamped = Math.max(0, Math.min(100, Number(confidencePercent || 0)));
+  const low = { r: 0xef, g: 0x44, b: 0x44 };   // #ef4444
+  const mid = { r: 0xf5, g: 0x9e, b: 0x0b };   // #f59e0b
+  const high = { r: 0x16, g: 0xa3, b: 0x4a };  // #16a34a
+
+  let rgb;
+  if (clamped <= 50) {
+    const t = clamped / 50;
+    rgb = {
+      r: lerpChannel(low.r, mid.r, t),
+      g: lerpChannel(low.g, mid.g, t),
+      b: lerpChannel(low.b, mid.b, t)
+    };
+  } else {
+    const t = (clamped - 50) / 50;
+    rgb = {
+      r: lerpChannel(mid.r, high.r, t),
+      g: lerpChannel(mid.g, high.g, t),
+      b: lerpChannel(mid.b, high.b, t)
+    };
+  }
+
+  return am5.color((rgb.r << 16) + (rgb.g << 8) + rgb.b);
+}
+
 function buildEdgeTooltipLines(linkSprite, mode) {
   const { parentData, childData } = getLinkParentChildData(linkSprite);
   const edgeDetails = childData?.parentEdgeDetails || {};
@@ -287,6 +353,7 @@ function graphToTerminologyHierarchy(data) {
     const paper = byId.get(id);
     const children = (childrenByParent.get(id) || []).map((childId) => buildNode(childId, id, clusterId));
     const display = paper?.title || id;
+    const terminologies = buildTerminologyList(paper);
     const sharedTerms = parentId
       ? (edgeMeta.get(edgeKey(id, parentId))?.sharedTerms || [])
       : [];
@@ -303,6 +370,7 @@ function graphToTerminologyHierarchy(data) {
       fullTitle: display,
       year: paper?.year || null,
       terminologyScore: scoreById.get(id) || 0,
+      terminologies,
       value: Math.max(1, Number(paper?.citationCount || 1)),
       parentEdgeDetails: {
         childTitle: display,
@@ -320,6 +388,7 @@ function graphToTerminologyHierarchy(data) {
     fullTitle: rootPaper.title || 'Root',
     year: rootPaper.year || null,
     terminologyScore: scoreById.get(rootId) || 0,
+    terminologies: buildTerminologyList(rootPaper),
     value: Math.max(1, Number(rootPaper.citationCount || 1)),
     parentEdgeDetails: {
       childTitle: '',
@@ -425,6 +494,7 @@ function graphToCitationHierarchy(data) {
     const paper = byId.get(id);
     const children = (childrenByParent.get(id) || []).map((childId) => buildNode(childId, id, clusterId));
     const display = paper?.title || id;
+    const terminologies = buildTerminologyList(paper);
     const parentPaper = parentId && parentId !== ROOT_ID ? byId.get(parentId) : null;
     const citationMeta = parentId && parentId !== ROOT_ID
       ? edgeMeta.get(`${id}=>${parentId}`)
@@ -436,6 +506,7 @@ function graphToCitationHierarchy(data) {
       fullTitle: display,
       year: paper?.year || null,
       clusterId: clusterId || id,
+      terminologies,
       value: Math.max(1, Number(paper?.citationCount || 1)),
       parentEdgeDetails: citationMeta || {
         isSynthetic: isSyntheticParent,
@@ -486,24 +557,43 @@ function findClusterIdByPaperId(rootNode, paperId) {
   return null;
 }
 
-function PaperForceGraph({ data, mode = 'terminology', citationSpacing = 100, focusPaperId = null }) {
+function PaperForceGraph({
+  data,
+  mode = 'terminology',
+  citationSpacing = 100,
+  edgeLength = 50,
+  focusPaperId = null,
+  confidenceFilterActive = false,
+  nodeConfidenceById = {},
+  favoriteKeywords = [],
+  onToggleFavoriteKeyword = null
+}) {
   const viewportRef = useRef(null);
   const chartRef = useRef(null);
   const contentContainerRef = useRef(null);
   const lastPanPointRef = useRef(null);
   const [edgeTooltip, setEdgeTooltip] = useState(null);
+  const [sidePanel, setSidePanel] = useState({ open: false, type: null, payload: null });
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [zoomLevel, setZoomLevel] = useState(1);
   const [isPanning, setIsPanning] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const chartData = useMemo(() => graphToHierarchy(data, mode), [data, mode]);
+  const favoriteKeywordSet = useMemo(
+    () => new Set((favoriteKeywords || []).map((term) => normalizeFavoriteTerm(term)).filter(Boolean)),
+    [favoriteKeywords]
+  );
   const focusedClusterId = useMemo(() => {
     if (mode !== 'citation' || !focusPaperId) return null;
     return findClusterIdByPaperId(chartData, focusPaperId);
   }, [chartData, mode, focusPaperId]);
   const spacingRatio = Math.max(0, Math.min(100, Number(citationSpacing || 0))) / 100;
-  const clusterCenterStrength = 1 - spacingRatio * 0.4; // left => compact, right => current spacing
-  const clusterManyBodyStrength = -4 - spacingRatio * 12;
+  const edgeLengthRatio = Math.max(0, Math.min(100, Number(edgeLength || 0))) / 100;
+  // Make left side meaningfully denser so disconnected clusters stay in view.
+  const clusterCenterStrength = Math.max(0.45, (2.2 - spacingRatio * 1.3) + ((0.5 - edgeLengthRatio) * 0.7));
+  const clusterManyBodyStrength = (-1 - spacingRatio * 9) - (edgeLengthRatio * 6 - 3);
+  // Left => shorter edges (stronger spring), Right => longer edges (weaker spring).
+  const linkWithStrength = 1.8 - edgeLengthRatio * 1.5;
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -514,6 +604,17 @@ function PaperForceGraph({ data, mode = 'terminology', citationSpacing = 100, fo
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (!sidePanel.open) return undefined;
+    const onKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        setSidePanel({ open: false, type: null, payload: null });
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [sidePanel.open]);
 
   useEffect(() => {
     const container = contentContainerRef.current;
@@ -602,7 +703,8 @@ function PaperForceGraph({ data, mode = 'terminology', citationSpacing = 100, fo
         childDataField: 'children',
         singleBranchOnly: TREE_CONFIG.singleBranchOnly,
         centerStrength: clusterCenterStrength,
-        manyBodyStrength: clusterManyBodyStrength
+        manyBodyStrength: clusterManyBodyStrength,
+        linkWithStrength
       })
     );
 
@@ -639,9 +741,18 @@ function PaperForceGraph({ data, mode = 'terminology', citationSpacing = 100, fo
       return clusterId === focusedClusterId ? 0.96 : 0.12;
     });
     series.circles.template.adapters.add('fill', (current, target) => {
-      if (mode !== 'citation' || !focusPaperId) return current;
       const nodeId = target?.dataItem?.dataContext?.id ? String(target.dataItem.dataContext.id) : '';
-      return nodeId && nodeId === String(focusPaperId) ? am5.color(0x111827) : current;
+      if (!nodeId) return current;
+      if (mode === 'citation' && focusPaperId && nodeId === String(focusPaperId)) {
+        return am5.color(0x111827);
+      }
+      if (confidenceFilterActive) {
+        const confidencePercent = Number(nodeConfidenceById?.[nodeId]);
+        if (Number.isFinite(confidencePercent)) {
+          return getConfidenceNodeColor(confidencePercent);
+        }
+      }
+      return current;
     });
     series.circles.template.adapters.add('strokeOpacity', (current, target) => {
       if (mode !== 'citation' || !focusedClusterId) return current;
@@ -725,6 +836,15 @@ function PaperForceGraph({ data, mode = 'terminology', citationSpacing = 100, fo
       target.states.applyAnimate('default');
       setEdgeTooltip(null);
     });
+    series.links.template.events.on('click', (ev) => {
+      const payload = buildEdgePanelPayload(ev.target, mode);
+      if (!payload) return;
+      setSidePanel({
+        open: true,
+        type: 'edge',
+        payload
+      });
+    });
 
     // Label styling and depth-based visibility.
     series.labels.template.setAll({
@@ -757,6 +877,18 @@ function PaperForceGraph({ data, mode = 'terminology', citationSpacing = 100, fo
       const value = target?.dataItem?.dataContext?.value || 0;
       return `${formatPaperWithYear(fullTitle, year)}\nCitations: ${value}`;
     });
+    series.nodes.template.events.on('click', (ev) => {
+      const context = ev?.target?.dataItem?.dataContext || {};
+      setSidePanel({
+        open: true,
+        type: 'node',
+        payload: {
+          title: context.fullTitle || context.name || 'Unknown paper',
+          citations: Number(context.value || 0),
+          terminologies: Array.isArray(context.terminologies) ? context.terminologies : []
+        }
+      });
+    });
 
     series.data.setAll([chartData]);
     if (series.dataItems.length > 0) {
@@ -787,7 +919,17 @@ function PaperForceGraph({ data, mode = 'terminology', citationSpacing = 100, fo
       contentContainerRef.current = null;
       root.dispose();
     };
-  }, [chartData, mode, clusterCenterStrength, clusterManyBodyStrength, focusedClusterId, focusPaperId]);
+  }, [
+    chartData,
+    mode,
+    clusterCenterStrength,
+    clusterManyBodyStrength,
+    linkWithStrength,
+    focusedClusterId,
+    focusPaperId,
+    confidenceFilterActive,
+    nodeConfidenceById
+  ]);
 
   const controlButtonStyle = {
     width: 30,
@@ -853,6 +995,151 @@ function PaperForceGraph({ data, mode = 'terminology', citationSpacing = 100, fo
           ))}
         </div>
       ) : null}
+      {sidePanel.open ? (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 62,
+            background: 'rgba(15, 23, 42, 0.2)'
+          }}
+        />
+      ) : null}
+      <aside
+        role="dialog"
+        aria-modal={sidePanel.open ? 'true' : 'false'}
+        style={{
+          position: 'fixed',
+          top: 0,
+          right: 0,
+          width: '420px',
+          maxWidth: '92vw',
+          height: '100vh',
+          zIndex: 63,
+          background: '#ffffff',
+          borderLeft: '1px solid #e5e7eb',
+          boxShadow: '-10px 0 28px rgba(15, 23, 42, 0.22)',
+          display: 'flex',
+          flexDirection: 'column',
+          transform: sidePanel.open ? 'translateX(0)' : 'translateX(100%)',
+          transition: 'transform 220ms ease',
+          pointerEvents: sidePanel.open ? 'auto' : 'none'
+        }}
+      >
+        <div
+          style={{
+            padding: '14px 16px',
+            borderBottom: '1px solid #e5e7eb',
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            gap: 12
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'Consolas, monospace', marginBottom: 6 }}>
+              {sidePanel.type === 'edge' ? 'Edge Details' : 'Paper Details'}
+            </div>
+            <div
+              style={{
+                fontFamily: "'Inter', sans-serif",
+                fontWeight: 700,
+                fontSize: 16,
+                color: '#0f172a',
+                lineHeight: 1.35
+              }}
+            >
+              {sidePanel.payload?.title || 'Untitled'}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSidePanel({ open: false, type: null, payload: null })}
+            title="Close details panel"
+            style={{
+              width: 30,
+              height: 30,
+              border: '1px solid #cbd5e1',
+              borderRadius: 8,
+              background: '#ffffff',
+              color: '#0f172a',
+              cursor: 'pointer',
+              flexShrink: 0
+            }}
+          >
+            X
+          </button>
+        </div>
+        <div style={{ padding: '16px', overflowY: 'auto' }}>
+          <div
+            style={{
+              display: 'inline-block',
+              padding: '5px 10px',
+              borderRadius: 999,
+              background: '#f1f5f9',
+              border: '1px solid #dbe3ee',
+              color: '#0f172a',
+              fontFamily: "'Inter', sans-serif",
+              fontSize: 12,
+              fontWeight: 600,
+              marginBottom: 14
+            }}
+          >
+            Total Citations: {Number(sidePanel.payload?.citations || 0)}
+          </div>
+          <div style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: 13, color: '#334155', marginBottom: 10 }}>
+            Terminologies
+          </div>
+          {Array.isArray(sidePanel.payload?.terminologies) && sidePanel.payload.terminologies.length > 0 ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {sidePanel.payload.terminologies.map((term, index) => (
+                <span
+                  key={`${term}-${index}`}
+                  style={{
+                    fontFamily: 'Consolas, monospace',
+                    fontSize: 11,
+                    color: favoriteKeywordSet.has(normalizeFavoriteTerm(term)) ? '#ffffff' : '#0f172a',
+                    background: favoriteKeywordSet.has(normalizeFavoriteTerm(term)) ? '#2563eb' : '#f8fafc',
+                    border: `1px solid ${favoriteKeywordSet.has(normalizeFavoriteTerm(term)) ? '#2563eb' : '#dbe3ee'}`,
+                    borderRadius: 999,
+                    padding: '5px 9px',
+                    lineHeight: 1.2,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6
+                  }}
+                >
+                  <span>{term}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof onToggleFavoriteKeyword === 'function') {
+                        onToggleFavoriteKeyword(term);
+                      }
+                    }}
+                    title={favoriteKeywordSet.has(normalizeFavoriteTerm(term)) ? 'Remove from favorites' : 'Add to favorites'}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: favoriteKeywordSet.has(normalizeFavoriteTerm(term)) ? '#ffffff' : '#64748b',
+                      cursor: 'pointer',
+                      padding: 0,
+                      lineHeight: 1,
+                      fontSize: '12px'
+                    }}
+                  >
+                    {favoriteKeywordSet.has(normalizeFavoriteTerm(term)) ? '×' : '+'}
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div style={{ fontFamily: 'Consolas, monospace', fontSize: 12, color: '#64748b' }}>
+              No terminology data available.
+            </div>
+          )}
+        </div>
+      </aside>
       <div
         style={{
           position: 'absolute',

@@ -187,10 +187,8 @@ async function fetchAndStore(searchTerm, onProgress, category = "All Computer Sc
       // Stop known generic noise from even making it into MongoDB
       const noiseWords = new Set(["computer science", "uncategorized", "research", "paper", "study"]);
       
-      // Bumped the slice to 10 to give your specific topics more breathing room
       let tags = [...new Set([...topicTags, ...conceptTags])]
-        .filter(tag => !noiseWords.has(tag.toLowerCase()))
-        .slice(0, 10); 
+        .filter(tag => !noiseWords.has(tag.toLowerCase()));
       
       if (tags.length === 0) tags = [work.primary_topic?.display_name || "Unknown Topic"];
 
@@ -209,7 +207,7 @@ async function fetchAndStore(searchTerm, onProgress, category = "All Computer Sc
             name: a.author?.display_name || ""
           }))
           .filter((a) => a.name),
-        keywords: (work.keywords || []).map((k) => k?.display_name || "").filter(Boolean).slice(0, 10),
+        keywords: [...new Set((work.keywords || []).map((k) => k?.display_name || "").filter(Boolean))],
         primaryTopic: work.primary_topic?.display_name || "Unknown Topic",
         tags: tags, 
         referencedWorks: (work.referenced_works || []).filter(Boolean)
