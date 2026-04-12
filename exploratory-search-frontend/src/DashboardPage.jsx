@@ -705,19 +705,17 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
                             >
                               {isFavorited ? '♥' : '♡'}
                             </button>
+                            
+                              <td style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>
                             {link ? (
-                              <a
-                                href={link}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={(e) => e.stopPropagation()}
-                                style={{ color: isFocused ? '#93c5fd' : '#2563eb', textDecoration: 'none' }}
-                              >
-                                {paper.title || 'Untitled'}
-                              </a>
+                              <span onClick={() => onSelectPaper(paper)}  style={{ color: '#2563eb', textDecoration: 'none', cursor: 'pointer' }}>
+                                    {paper.title || 'Untitled'}
+                                  </span>
                             ) : (
                               (paper.title || 'Untitled')
                             )}
+                          </td>
+                            
                           </span>
                           {hasActiveFavoriteFilter ? (
                             <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
