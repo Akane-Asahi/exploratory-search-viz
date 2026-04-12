@@ -5,7 +5,9 @@ const router = express.Router();
 
 router.get("/", async (req, res) => {
   try {
-    const terms = await getTopTerminologies();
+    const parsedLimit = Number(req.query.limit);
+    const limit = Number.isFinite(parsedLimit) ? parsedLimit : 0;
+    const terms = await getTopTerminologies(limit);
     res.json(terms);
   } catch (err) {
     console.error("Terminology route error:", err);

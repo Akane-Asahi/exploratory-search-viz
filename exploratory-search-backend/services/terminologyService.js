@@ -15,15 +15,10 @@ const BLACKLIST = new Set(
   ].map((term) => term.toLowerCase())
 );
 
-const TOP_TERMS_LIMIT = 20;
 const TREND_WINDOW_YEARS = 10;
 
-function computeNicheScore(count) {
-  return count / Math.log(count + 1);
-}
-
-async function getTopTerminologies(limit = TOP_TERMS_LIMIT) {
-  const papers = await Paper.find({}, { tags: 1, primaryTopic: 1, year: 1 }).lean();
+async function getTopTerminologies(limit = 0) {
+  const papers = await Paper.find({}, { tags: 1, keywords: 1, primaryTopic: 1, year: 1 }).lean();
   const stats = new Map();
   const currentYear = new Date().getFullYear();
   const minTrendYear = currentYear - (TREND_WINDOW_YEARS - 1);
@@ -34,12 +29,16 @@ async function getTopTerminologies(limit = TOP_TERMS_LIMIT) {
       stats.set(name, {
         name,
         count: 0,
+        lastCitedYear: 0,
         trendByYear: yearRange.reduce((acc, y) => ({ ...acc, [y]: 0 }), {})
       });
     }
 
     const entry = stats.get(name);
     entry.count += 1;
+    if (Number.isFinite(year) && year > 0) {
+      entry.lastCitedYear = Math.max(entry.lastCitedYear || 0, year);
+    }
     if (year >= minTrendYear && year <= currentYear) {
       entry.trendByYear[year] += 1;
     }
@@ -49,6 +48,7 @@ async function getTopTerminologies(limit = TOP_TERMS_LIMIT) {
     const year = Number(paper?.year || 0);
     const terms = [
       ...(paper.tags || []),
+      ...(paper.keywords || []),
       paper.primaryTopic || ""
     ]
       .map((term) => (term || "").trim())
@@ -61,25 +61,26 @@ async function getTopTerminologies(limit = TOP_TERMS_LIMIT) {
     });
   });
 
-  const scored = Array.from(stats.values()).map((entry) => ({
-    ...entry,
-    nicheScore: computeNicheScore(entry.count)
-  }));
-
-  const highestScore = scored.reduce((max, item) => Math.max(max, item.nicheScore), 0);
-
-  return scored
+  const allRankedTerms = Array.from(stats.values())
     .map((item) => ({
       name: item.name,
-      score: highestScore > 0 ? Number((item.nicheScore / highestScore).toFixed(4)) : 0,
       count: item.count,
+      lastCitedYear: Number(item.lastCitedYear || 0),
+      trendScore: Number(item.count || 0) + (Number(item.lastCitedYear || 0) * 2),
       trend: yearRange.map((year) => item.trendByYear[year] || 0)
     }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.name.localeCompare(b.name);
+    });
+
+  const safeLimit = Number(limit);
+  if (!Number.isFinite(safeLimit) || safeLimit <= 0) {
+    return allRankedTerms;
+  }
+  return allRankedTerms.slice(0, Math.floor(safeLimit));
 }
 
 module.exports = {
-  getTopTerminologies,
-  computeNicheScore
+  getTopTerminologies
 };

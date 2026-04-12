@@ -34,8 +34,9 @@ const TopicChart = ({ rawData, conceptColors = {} }) => {
       .domain(d3.extent(flatData, d => d.date))
       .range([marginLeft, width - marginRight]);
 
+    const yMax = Math.max(1, d3.max(flatData, d => Number(d.count || 0)) || 1);
     const y = d3.scaleLinear()
-      .domain([0, d3.max(flatData, d => d.count)]).nice()
+      .domain([0, yMax]).nice()
       .range([height - marginBottom, marginTop]);
 
     // Clear and set up SVG
@@ -56,7 +57,7 @@ const TopicChart = ({ rawData, conceptColors = {} }) => {
     // Y axis
     svg.append("g")
       .attr("transform", `translate(${marginLeft},0)`)
-      .call(d3.axisLeft(y))
+      .call(d3.axisLeft(y).ticks(6).tickFormat(d3.format('d')))
       .call(g => g.select(".domain").remove())
       .call(g => g.selectAll(".tick line").clone()
         .attr("x2", width - marginLeft - marginRight)
@@ -64,8 +65,8 @@ const TopicChart = ({ rawData, conceptColors = {} }) => {
         .attr("stroke-opacity", 1))
       .call(g => g.selectAll("text").attr("fill", "#6b7280").style("font-size", "8px"));
 
-    // Compute points as [x, y, z] where z is concept name
-    const points = flatData.map(d => [x(d.date), y(d.count), d.concept]);
+    // Compute points as [x, y, z, value] where z is concept name
+    const points = flatData.map(d => [x(d.date), y(d.count), d.concept, d.count]);
 
     // Group points by concept
     const groups = d3.rollup(points, v => Object.assign(v, { z: v[0][2] }), d => d[2]);
@@ -114,12 +115,12 @@ const TopicChart = ({ rawData, conceptColors = {} }) => {
     function pointermoved(event) {
       const [xm, ym] = d3.pointer(event);
       const i = d3.leastIndex(points, ([px, py]) => Math.hypot(px - xm, py - ym));
-      const [px, py, k] = points[i];
+      const [px, py, k, value] = points[i];
       const selectedColor = colorFor(k);
       path.style("stroke", ({ z }) => (z === k ? selectedColor : "#d1d5db")).filter(({ z }) => z === k).raise();
       dot.attr("transform", `translate(${px},${py})`);
       dot.select("circle").attr("fill", selectedColor);
-      dot.select("text").text(k);
+      dot.select("text").text(`${k}: ${value}`);
     }
 
     function pointerentered() {
