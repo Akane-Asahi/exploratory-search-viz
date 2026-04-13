@@ -309,7 +309,8 @@ function AuthorDashboard({ author,onReturn, searchTerm, onNewSearch, onSelectPap
                   gap: "6px",
                   maxHeight: "250px",        
                   overflowY: "auto",
-                  scrollBehavior: "smooth"
+                  scrollBehavior: "smooth",
+                  bottomMargin: "10px"
                 }}  >
                   {uniqueTags.map((tag, i) => (
                     <span
@@ -321,7 +322,7 @@ function AuthorDashboard({ author,onReturn, searchTerm, onNewSearch, onSelectPap
                         color: "#3730a3",
                         fontSize: "20px",
                         border: "1px solid #c7d2fe",
-                        overflowY: "auto"
+                        
                       }}>
                         {tag}
                       </span>

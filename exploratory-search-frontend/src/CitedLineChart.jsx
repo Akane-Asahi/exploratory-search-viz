@@ -64,7 +64,13 @@ function CitedLineChart({ rawData, type }) {
       .tickFormat(d3.format("d")) 
       .tickSizeOuter(0))
       .call(g => g.selectAll("text")
-        .style("font-size", "15px"));
+        .style("font-size", "12px")
+        .attr("transform", "rotate(-35)")
+        .style("text-anchor", "end")
+        .attr("dx", "-0.5em")
+        .attr("dy", "0.25em"));
+      
+      
 
   
     svg.append("g")

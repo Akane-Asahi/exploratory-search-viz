@@ -271,7 +271,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
                 <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, backgroundColor: '#fff', border: '1px solid #eeeff0', borderRadius: '10px', overflow: 'hidden' }}>
                   <thead>
                     <tr style={{ backgroundColor: '#f9fafb' }}>
-                      {['Title', 'Citations', 'Published', 'Total Authors','Score'].map((h) => (
+                      {['Title', 'Citations', 'Published', 'Total Authors','Similarty Score'].map((h) => (
                         <th key={h} style={{ textAlign: 'left', fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 500, color: '#111827', padding: '10px 12px', borderBottom: '1px solid #eeeff0' }}>
                           {h}
                         </th>
@@ -358,9 +358,11 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
                           display: "flex",
                           flexWrap: "wrap",
                           gap: "6px",
-                          maxHeight: "250px",        
+                          maxHeight: "150px",        
                           overflowY: "auto",
-                          scrollBehavior: "smooth"
+                          scrollBehavior: "smooth",
+                          marginBottom: "20px",
+                          marginTop: "20px"
                         }}  >
                         {paper.tags?.map((tag, i) => (
                           <span
@@ -372,7 +374,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
                               color: "#3730a3",
                               fontSize: "20px",
                               border: "1px solid #c7d2fe",
-                              overflowY: "auto"
+                              
                             }}
                           >
                             {tag}
