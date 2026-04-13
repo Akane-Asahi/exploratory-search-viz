@@ -299,7 +299,7 @@ function AuthorDashboard({ author,onReturn, searchTerm, onNewSearch, onSelectPap
                 </div>
             </div>
 
-            <div style={{ ...panelStyle, height: '420px' }}>
+            <div style={{ ...panelStyle, height: '240px' }}>
                 <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '41px', margin: 0 }}>
                   Fields of Reasearch
                 </p>

@@ -7,20 +7,21 @@ function CitedLineChart({ rawData, type }) {
 
   useEffect(() => {
     if (!rawData || !Array.isArray(rawData) || rawData.length === 0) return;
+    if (!containerRef.current) return;
     let colour;
-    let height;
+    const height = containerRef.current.clientHeight;
     if (type === "paper"){
       colour = "lightblue";
-      height = 400;
+      
     }else if (type === "author"){
       colour = "coral";
-      height = 400;
+      
     }
     const marginTop = 30;
     const marginRight = 40;
     const marginBottom = 40;
     const marginLeft = 50;
-    const width = 928;
+    const width = containerRef.current.clientWidth;
     
 
     // Flatten and sort by count ascending (so highest is at top)

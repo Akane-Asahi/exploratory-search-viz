@@ -848,7 +848,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
                         color: graphMode === 'terminology' ? '#ffffff' : '#374151'
                       }}
                     >
-                      Terminology
+                      Term
                     </button>
                   </div>
                 </div>
@@ -980,9 +980,9 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
             </div>
           </div>
         </div>
-        <div style={{ ...panelStyle, height: '600px' }}>
+        <div style={{ ...panelStyle, height: '500px' }}>
           <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '18px', margin: '0 0 10px 0' }}>Authors</p>
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch', height: '390px' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'stretch', height: '460px' }}>
             
             <div style={{ flex: 1.5, minWidth: 0, border: '1px solid #eeeff0', borderRadius: '10px', padding: '8px 10px' }}>
               <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '22px', margin: '0 0 6px 0' }}>

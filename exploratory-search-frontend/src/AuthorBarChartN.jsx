@@ -51,15 +51,16 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
 
   useEffect(() => {
     if (!rawData || !Array.isArray(rawData) || rawData.length === 0) return;
+    if (!containerRef.current) return;
 
     const marginTop = 5;
     const marginRight = 60; 
     const marginBottom = 5;
-    const marginLeft = 100;
-    
+    const marginLeft = 140;
+    const width = containerRef.current.clientWidth;
     
 
-    const citeColour = "red";
+    const citeColour = "#A8E6A3";
     const countColour = "steelblue"
 
     const flatData = rawData
@@ -103,11 +104,11 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
     svg.attr("width", width)
       .attr("height", height)
       .attr("viewBox", [0, 0, width, height])
-      .attr("style", "max-width: 100%; height: auto; font: 10px sans-serif;");
+      .attr("style", "max-width: 100%; height: auto;  overflow: visible; font: 10px sans-serif;");
 
     const texttoolCount = svg.append("text")
       .style("opacity", 0)
-      .attr("font-size", "9px")
+      .attr("font-size", "12px")
       .style("pointer-events", "none")
       .attr("fill", countColour);
 
@@ -118,6 +119,8 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
       .join("rect")
       .attr("y", d => y(d.name) + ySub('count'))
       .attr("x", x(0))
+      .attr("rx", 5)
+      .attr("ry", 5)
       .attr("height", ySub.bandwidth())
       .attr("width", d =>  x(d.count)-x(0))
       .on("mouseover", function (event,d) { 
@@ -146,7 +149,7 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
 
     const texttoolCites = svg.append("text")
       .style("opacity", 0)
-      .attr("font-size", "9px")
+      .attr("font-size", "12px")
       .style("pointer-events", "none")
       .attr("fill", citeColour);
 
@@ -157,6 +160,8 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
       .join("rect")
       .attr("y", d => y(d.name) + ySub('cites'))
       .attr("x", xr(0))
+      .attr("rx", 5)
+      .attr("ry", 5)
       .attr("height", ySub.bandwidth())
       .attr("width", d => xr(d.cites)-xr(0))
       .on("mouseover", function (event,d) { 
@@ -190,7 +195,7 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
     svg.append("g")
       .attr("transform", `translate(${marginLeft},0)`)
       .call(d3.axisLeft(y).tickSizeOuter(0))
-      .style("fontsize",15)
+      .style("font-size", "12px")
       .selectAll(".tick text")
       .call(wrapText, 90)
       .on("click", (event,d) =>{
@@ -249,7 +254,7 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
     legend.append("text")
     .attr("x", 16)
     .attr("y", 10)
-    .attr("font-size", "10px")
+    .attr("font-size", "11px")
     .attr("fill", "black")
     .text("Paper Count");
 
@@ -262,7 +267,7 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
     legend.append("text")
     .attr("x", 116)
     .attr("y", 10)
-    .attr("font-size", "10px")
+    .attr("font-size", "12px")
     .attr("fill", "black")
     .text("Citations");
    
@@ -270,7 +275,7 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
   }, [rawData]);
 
   return (
-    <div style={{ position: "relative", height: "350px" }}>
+    <div ref={containerRef} style={{ position: "relative", height: "350px" }}>
         
       
         <svg

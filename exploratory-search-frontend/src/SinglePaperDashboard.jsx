@@ -252,11 +252,11 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
                 </table>
               </div>
             </div>
-            <div style={{ ...panelStyle, height: '315px' }}>
+            <div style={{ ...panelStyle, height: '350px' }}>
                 <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '18px', margin: '0 0 10px 0' }}>
                   Yearly Citation Count
                 </p>
-                <div style={{ height: '275px' }}>
+                <div style={{ height: '325px' }}>
                   {citHisory?.length > 0 ? <CitedLineChart rawData={citHisory} type={"paper"} /> : <p style={{ fontFamily: font }}>Waiting for data...</p>}
                 </div>
             </div>
