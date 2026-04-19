@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {updateFavoritePapers, getFavoritePaper, getFavoriteTerms, updateFavoriteTerms} from './BackFetch'
 import axios from 'axios';
 import TopicChart from './TopicChart';
 import PaperForceGraph from './PaperForceGraph';
 import BarGraph from './Bargraph'
 import WordCloud from './WordCloud'
 import AuthorBarChart from './AuthorBarChartN'
+
 
 const font = "'Consolas', monospace";
 const TOPIC_COLOR_PALETTE = [
@@ -145,16 +147,37 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
   const [topTags, setTopTags] = useState([]);
   const [authors, setAuthors] = useState([]);
   const pollInterval = useRef(null);
+  const favoritePaperTopicsRef = useRef(favoritePaperTopics);
+  const favoriteRankedKeywordsRef = useRef(favoriteRankedKeywords);
+
+  const loadData = async () => {
+    const paperData = await getFavoritePaper(searchTerm);
+    const termData = await getFavoriteTerms(searchTerm);
+    
+    const buildMap = (papers) =>
+      Object.fromEntries(
+        (papers || []).map(p => [
+          String(p.openAlexId),
+          getPaperTopicTerms(p)
+        ])
+      );
+
+    setFavoritePaperTopics(buildMap(paperData?.papers));
+    setFavoriteRankedKeywords(termData?.terms || []);
+  };
 
   
   const fetchData = useCallback(async () => {
     try {
       // 1. Pointed to correct backend URL and correct route
       const resStats = await axios.get('http://localhost:5000/api/papers/dashboard-stats');
+
       
       // 2. Extracted the nested 'stats' object correctly
       const dashboardStats = resStats.data.stats;
       setStats(dashboardStats);
+
+    
 
       if (dashboardStats && dashboardStats.totalPapers > 0) {
         setIsSyncing(false);
@@ -196,9 +219,14 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
       console.error('Polling error:', err);
     }
   }, []);
-
   useEffect(() => {
+    favoritePaperTopicsRef.current = favoritePaperTopics;
+    favoriteRankedKeywordsRef.current = favoriteRankedKeywords;
+  },[[favoriteRankedKeywords,favoriteRankedKeywords]]);
+  useEffect(() => {
+
     fetchData();
+    loadData();
     pollInterval.current = setInterval(fetchData, 3000);
     return () => {
       if (pollInterval.current) clearInterval(pollInterval.current);
@@ -239,6 +267,8 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     () => sortedTerminologies.slice(0, 5),
     [sortedTerminologies]
   );
+
+  
 
   const terminologyByName = React.useMemo(() => {
     const map = new Map();
@@ -445,6 +475,11 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     () => new Set(activeFilterTerms.map((term) => normalizeLabel(term)).filter(Boolean)),
     [activeFilterTerms]
   );
+  const clearKeywords = useCallback(() => {
+      setFavoritePaperTopics({});
+      setFavoriteRankedKeywords([]);
+  }
+  );
 
   const paperMatchDetails = React.useMemo(() => {
     const details = new Map();
@@ -541,7 +576,8 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
 
   return (
     <div style={{ backgroundColor: '#f9fafb', minHeight: '100vh', display: 'flex', flexDirection: 'column', paddingBottom: '84px' }}>
-      <div style={{
+    
+      <div style={{ 
         backgroundColor: '#ffffff',
         borderBottom: '1px solid #eeeff0',
         height: '65px',
@@ -559,7 +595,24 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
         </p>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           {isSyncing && <span style={{ color: '#6b7280', fontFamily: font, fontSize: '11px' }}>Syncing data...</span>}
-          <button onClick={onNewSearch} style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280', backgroundColor: '#f9fafb', border: '1px solid #eeeff0', borderRadius: '100px', padding: '10px 22px', cursor: 'pointer', minWidth: '215px' }}>
+          <button onClick={async () => {
+            try {
+              
+              await updateFavoritePapers(
+                searchTerm,
+                
+                Object.keys(favoritePaperTopicsRef.current)
+              );
+              
+              await updateFavoriteTerms(searchTerm, favoriteRankedKeywordsRef.current);
+             
+            } catch (err) {
+              
+            } finally {
+              onNewSearch(); 
+              
+            }
+          }}style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#6b7280', backgroundColor: '#f9fafb', border: '1px solid #eeeff0', borderRadius: '100px', padding: '10px 22px', cursor: 'pointer', minWidth: '215px' }}>
             Search another topic
           </button>
         </div>
@@ -657,7 +710,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
                       ? (doiValue.startsWith('http') ? doiValue : `https://doi.org/${doiValue}`)
                       : '';
                     const link = normalizedDoiLink || paper.openAlexUrl || paper.openAlexId || '';
-                    const paperId = paper?._id ? String(paper._id) : '';
+                    const paperId = paper?.openAlexId ? String(paper.openAlexId) : '';
                     const paperFavoriteKey = paperId || `${paper?.title || 'untitled'}-${paper?.year || 0}`;
                     const isFavorited = Boolean(favoritePaperTopics[paperFavoriteKey]);
                     const isFocused = graphMode === 'citation' && focusedPaperId && paperId === focusedPaperId;
@@ -708,10 +761,24 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
                             
                               <td style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', color: '#111827', padding: '8px 12px', borderBottom: '1px solid #eeeff0' }}>
                             {link ? (
-                              <span onClick={() => onSelectPaper(paper)}  style={{ color: '#2563eb', textDecoration: 'none', cursor: 'pointer' }}>
-                                    {paper.title || 'Untitled'}
-                                  </span>
-                            ) : (
+                              <span onClick={async () => {try {
+                                await updateFavoritePapers(
+                                  searchTerm,
+                                 
+                                    Object.keys(favoritePaperTopicsRef.current)
+                                  
+                                );
+
+                                  await updateFavoriteTerms(searchTerm, favoriteRankedKeywordsRef.current);
+                                } catch (err) {
+                                  console.error("Failed to save favorites:", err);
+                                } finally {
+                                  onSelectPaper(paper);
+                                }
+                                  }}  style={{ color: '#2563eb', textDecoration: 'none', cursor: 'pointer' }}>
+                                  {paper.title || 'Untitled'}
+                                </span>
+                              ) : (
                               (paper.title || 'Untitled')
                             )}
                           </td>
@@ -988,9 +1055,15 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
               <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '22px', margin: '0 0 6px 0' }}>
                 Top Author Chart
               </p>
-              <div id = "chart-container" style={{ height: '350px' }}>
+              <div style={{ height: '350px' }}>
                 {authors?.length > 0 ? (
-                  <AuthorBarChart rawData={authors} selectAuthor={onSelectAuthor} />
+                  <AuthorBarChart rawData={authors} selectAuthor={onSelectAuthor} updateData = {async ()  => {
+                    await updateFavoritePapers(
+                      searchTerm,
+                      Object.keys(favoritePaperTopicsRef.current)          
+                      );
+                      await updateFavoriteTerms(searchTerm, favoriteRankedKeywordsRef.current);
+                    } }/>
                 ) : (
                   <p style={{ fontFamily: font }}>Waiting for data...</p>
                 )}
@@ -1139,21 +1212,21 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
             </button>
             <button
               type="button"
-              onClick={resetFavoriteKeywordFilter}
-              disabled={!hasActiveFavoriteFilter}
+              onClick={hasActiveFavoriteFilter ? resetFavoriteKeywordFilter : clearKeywords }
+             
               style={{
                 flex: 1,
                 border: '1px solid #d1d5db',
                 borderRadius: 8,
-                background: !hasActiveFavoriteFilter ? '#f3f4f6' : '#ffffff',
+                background:  favoriteKeywords.length === 0 ? '#f3f4f6' : '#ffffff',
                 color: '#111827',
-                cursor: !hasActiveFavoriteFilter ? 'not-allowed' : 'pointer',
+                
                 fontFamily: "'Inter', sans-serif",
                 fontSize: '11px',
                 fontWeight: 600
               }}
             >
-              Reset
+              {hasActiveFavoriteFilter ? 'Reset' : "Clear"}
             </button>
           </div>
         </div>

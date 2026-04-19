@@ -14,6 +14,15 @@ app.use(express.json());
 app.use("/api/terminology", terminologyRoute);
 app.use("/api/paper-network", paperNetworkRoute);
 
+let db; 
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("✅ Database Connected");
+    db = mongoose.connection.db; 
+  })
+  .catch(err => console.log("❌ MongoDB Connection Error:", err));
+
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ Database Connected"))
   .catch(err => console.log("❌ MongoDB Connection Error:", err));
@@ -171,6 +180,84 @@ app.get("/api/papers/dashboard-stats", async (req, res) => {
 });
 
 
+
+
+app.put("/api/insert-favorite-paper/:searchTerm", async (req, res) => {
+  try {
+    const searchTerm = req.params.searchTerm;
+    const { papers } = req.body;
+    
+
+    const result = await db.collection("favorite-papers").updateOne(
+      { searchTerm },
+      { $set: { papers } },
+      { upsert: true }
+    );
+
+    console.log(result);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/favorite-paper/:searchTerm", async (req, res) => {
+  try {
+    const searchTerm = req.params.searchTerm;
+
+    const doc = await db.collection("favorite-papers").findOne({ searchTerm });
+    
+    if (!doc || !doc.papers?.length) {
+      return res.json({ papers: [] });
+    }
+    
+    const papers = await Paper.find({ 
+      openAlexId: { $in: doc.papers } 
+    }).lean();
+
+    res.json({ papers });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put("/api/insert-favorite-term/:searchTerm", async (req, res) => {
+  try {
+    
+    const searchTerm = req.params.searchTerm;
+    const { terms } = req.body;
+    
+    const result = await db.collection("favorite-terms").updateOne(
+      { searchTerm },
+      { $set: { terms } },
+      { upsert: true }
+    );
+    
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get("/api/favorite-term/:searchTerm", async (req, res) => {
+  try {
+    const searchTerm = req.params.searchTerm;
+    
+    
+    const doc = await db.collection("favorite-terms").findOne({ searchTerm });
+    
+
+    if (!doc) {
+      return res.json({ terms: [] });
+    }
+
+    res.json({ terms: doc.terms || [] });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
 // Topic timeline: top N subtopics, publication count per year
 app.get("/api/topic-timeline", async (req, res) => {
   try {
@@ -211,34 +298,6 @@ app.get("/api/topic-timeline", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -35,7 +35,7 @@ function wrapText(text, width) {
   });
 }
 
-function AuthorBarChart({ rawData ,selectAuthor}) {
+function AuthorBarChart({ rawData ,selectAuthor,updateData}) {
   const containerRef = useRef();
   const svgRef = useRef();
   const axisRefBot = useRef();
@@ -43,8 +43,8 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
   const axisRefLegend = useRef();
   const selectAuthorRef = useRef(selectAuthor);
   
-  const container = document.getElementById("chart-container");
-  const width = container.clientWidth - 25;
+  
+  
   useEffect(() => {
     selectAuthorRef.current = selectAuthor;
   }, [selectAuthor]);
@@ -141,7 +141,8 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
           .style("opacity", 1)
           .style("stroke", "none");
         texttoolCount.style("opacity", 0);
-    }).on("click", (event,d) =>{
+    }).on("click", async (event,d) =>{
+        await updateData();
         selectAuthorRef.current({name: d.name});
         
 
@@ -182,7 +183,8 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
           .style("opacity", 1)
           .style("stroke", "none");
         texttoolCites.style("opacity", 0);
-    }).on("click", (event,d) =>{
+    }).on("click", async (event,d) =>{
+        await updateData();
         selectAuthorRef.current({name: d.name});
       }); 
 
@@ -198,7 +200,8 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
       .style("font-size", "12px")
       .selectAll(".tick text")
       .call(wrapText, 90)
-      .on("click", (event,d) =>{
+      .on("click", async (event,d) =>{
+        await updateData();
         selectAuthorRef.current({name: d});
       });
 
@@ -285,9 +288,9 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
             zIndex: 10,
             background: "white"
         }}
-        
+        width={"100%"}
         height={20}
-        width = {width}
+       
         >
         <g ref={axisRefLegend}></g>
         </svg>
@@ -300,7 +303,8 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
         }}
         
         height={40}
-        width = {width}
+        width={"100%"}
+        
         >
         <g ref={axisRefTop}></g>
         </svg>
@@ -315,9 +319,9 @@ function AuthorBarChart({ rawData ,selectAuthor}) {
             zIndex: 10,
             background: "white"
         }}
-        
+        width={"100%"}
         height={40}
-        width = {width}
+        
         >
         <g ref={axisRefBot}></g>
         </svg>

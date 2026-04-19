@@ -65,7 +65,7 @@ function CitedLineChart({ rawData, type }) {
       .tickSizeOuter(0))
       .call(g => g.selectAll("text")
         .style("font-size", "12px")
-        .attr("transform", "rotate(-35)")
+        .attr("transform", "rotate(-10)")
         .style("text-anchor", "end")
         .attr("dx", "-0.5em")
         .attr("dy", "0.25em"));
