@@ -70,8 +70,8 @@ function AuthorBarChart({ rawData ,selectAuthor,updateData}) {
         name: d._id,
        
       }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 15);
+      .sort((a, b) => b.count - a.count);
+      
     
     const height = flatData.length * 50 + marginTop + marginBottom;
     
@@ -309,7 +309,7 @@ function AuthorBarChart({ rawData ,selectAuthor,updateData}) {
         <g ref={axisRefTop}></g>
         </svg>
         
-        <div style={{ height: "180px", overflowY: "auto", paddingTop: "60px"}}>
+        <div style={{ height: "180px", overflowY: "auto",  scrollBehavior: "smooth",   paddingTop: "30px"}}>
         <svg ref={svgRef}></svg>
         </div>
         <svg

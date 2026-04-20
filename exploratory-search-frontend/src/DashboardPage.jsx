@@ -3,8 +3,8 @@ import {updateFavoritePapers, getFavoritePaper, getFavoriteTerms, updateFavorite
 import axios from 'axios';
 import TopicChart from './TopicChart';
 import PaperForceGraph from './PaperForceGraph';
-import BarGraph from './Bargraph'
-import WordCloud from './WordCloud'
+
+
 import AuthorBarChart from './AuthorBarChartN'
 
 
@@ -1072,18 +1072,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
                 )}
               </div>
             </div>
-             <div style={{ flex: 1, minWidth: 0, border: '1px solid #eeeff0', borderRadius: '10px', padding: '8px 10px' }}>
-              <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '22px', margin: '0 0 6px 0' }}>
-                Related Concepts
-              </p>
-              <div style={{ height: '400px' }}>
-                {authors?.length > 0 ? (
-                  <WordCloud rawData={topTags} selectWord={onSelectWord}  />
-                ) : (
-                  <p style={{ fontFamily: font }}>Waiting for data...</p>
-                )}
-              </div>
-            </div>
+             
           </div>
         </div>
       </div>

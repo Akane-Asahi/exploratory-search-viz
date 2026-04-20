@@ -342,7 +342,7 @@ app.get("/api/authors", async (req, res) => {
       { $unwind: "$authors" },
       { $group: { _id: "$authors.name", count: { $sum: 1 }, citations: { $sum: "$citationCount" } } },
       { $sort: { count: -1 } },
-      { $limit: 25 }
+      { $limit: 40 }
     ]);
     res.json(data);
   } catch (err) { res.status(500).json({ error: err.message }); }
