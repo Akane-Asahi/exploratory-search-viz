@@ -20,9 +20,13 @@ const CATEGORY_FILTER_MAP = {
   "Computer Security & Reliability": "topics.subfield.id:subfields/1702",
   "Database Management Systems": "topics.subfield.id:subfields/1706"
 };
+const ALLOWED_WORK_TYPES = new Set(["article", "proceedings-article"]);
+const WORK_TYPE_FILTER = "type:article|proceedings-article";
 
 const passesQualityThresholds = (work) => {
   const title = work.display_name || work.title || "";
+  const workType = (work?.type || "").toString().toLowerCase();
+  if (!ALLOWED_WORK_TYPES.has(workType)) return false;
   if (!title || title.length < 5) return false;
   if (!work.authorships || work.authorships.length === 0) return false;
   // We relax the abstract requirement for older foundational papers
@@ -48,6 +52,7 @@ function normalizeMath(text = "") {
 const paperSchema = new mongoose.Schema({
   openAlexId: { type: String, unique: true },
   openAlexUrl: String,
+  workType: String,
   doi: String,
   title: String,
   year: Number,
@@ -95,7 +100,7 @@ async function fetchAndStore(searchTerm, onProgress, category = "All Computer Sc
   if (!searchTerm) return { success: false, message: "No search term provided" };
   
   const mappedCategory = CATEGORY_FILTER_MAP[category] || CATEGORY_FILTER_MAP["All Computer Science"];
-  const apiFilter = `${mappedCategory},language:en`;
+  const apiFilter = `${mappedCategory},language:en,${WORK_TYPE_FILTER}`;
 
   const report = (saved, total, status, error) => {
     if (onProgress) onProgress({ saved, total, status, error: error || null });
@@ -154,7 +159,7 @@ async function fetchAndStore(searchTerm, onProgress, category = "All Computer Sc
       method: "get",
       url: "https://api.openalex.org/works",
       params: {
-        filter: `cites:${citeFilter},language:en`,
+        filter: `cites:${citeFilter},language:en,${WORK_TYPE_FILTER}`,
         sort: "cited_by_count:desc",
         "per-page": 100, // Top 100 most cited papers that cite our seeds
         mailto
@@ -186,7 +191,7 @@ async function fetchAndStore(searchTerm, onProgress, category = "All Computer Sc
             method: "get",
             url: "https://api.openalex.org/works",
             params: {
-              filter: `openalex:${chunkedRefs}`,
+              filter: `openalex:${chunkedRefs},${WORK_TYPE_FILTER}`,
               "per-page": 50,
               mailto
             }
@@ -229,6 +234,7 @@ async function fetchAndStore(searchTerm, onProgress, category = "All Computer Sc
       docs.push({
         openAlexId: work.id || "",
         openAlexUrl: work.primary_location?.landing_page_url || "",
+        workType: (work.type || "").toString().toLowerCase(),
         
         doi: work.doi || "",
         title: work.display_name,
