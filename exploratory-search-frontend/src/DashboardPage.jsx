@@ -485,6 +485,8 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     const details = new Map();
     const totalSelectedTerms = activeFilterTermSet.size;
     sortedPapers.forEach((paper) => {
+      const paperKey = String(paper?._id || paper?.openAlexId || '');
+      if (!paperKey) return;
       const paperTerms = getPaperTopicTerms(paper);
       const paperTermSet = new Set(paperTerms.map((term) => normalizeLabel(term)).filter(Boolean));
       let matchedCount = 0;
@@ -492,7 +494,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
         if (paperTermSet.has(term)) matchedCount += 1;
       });
       const confidence = totalSelectedTerms > 0 ? (matchedCount / totalSelectedTerms) : 0;
-      details.set(String(paper?._id || ''), {
+      details.set(paperKey, {
         matchedCount,
         totalSelectedTerms,
         confidence,
@@ -710,11 +712,12 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
                       ? (doiValue.startsWith('http') ? doiValue : `https://doi.org/${doiValue}`)
                       : '';
                     const link = normalizedDoiLink || paper.openAlexUrl || paper.openAlexId || '';
-                    const paperId = paper?.openAlexId ? String(paper.openAlexId) : '';
-                    const paperFavoriteKey = paperId || `${paper?.title || 'untitled'}-${paper?.year || 0}`;
+                    const paperNodeId = String(paper?._id || '');
+                    const paperOpenAlexId = paper?.openAlexId ? String(paper.openAlexId) : '';
+                    const paperFavoriteKey = paperOpenAlexId || `${paper?.title || 'untitled'}-${paper?.year || 0}`;
                     const isFavorited = Boolean(favoritePaperTopics[paperFavoriteKey]);
-                    const isFocused = graphMode === 'citation' && focusedPaperId && paperId === focusedPaperId;
-                    const confidenceInfo = paperMatchDetails.get(paperId) || {
+                    const isFocused = graphMode === 'citation' && focusedPaperId && paperNodeId === focusedPaperId;
+                    const confidenceInfo = paperMatchDetails.get(paperNodeId) || {
                       matchedCount: 0,
                       totalSelectedTerms: 0,
                       confidencePercent: 0
@@ -726,8 +729,8 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
                         key={paper._id || `${paper.title}-${paper.citationCount}`}
                         onClick={() => {
                           if (graphMode !== 'citation') return;
-                          if (!paperId) return;
-                          setFocusedPaperId((prev) => (prev === paperId ? null : paperId));
+                          if (!paperNodeId) return;
+                          setFocusedPaperId((prev) => (prev === paperNodeId ? null : paperNodeId));
                         }}
                         style={{
                           display: 'table',
