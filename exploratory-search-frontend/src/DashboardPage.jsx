@@ -5,7 +5,7 @@ import TopicChart from './TopicChart';
 import PaperForceGraph from './PaperForceGraph';
 
 
-import AuthorBarChart from './AuthorBarChartN'
+import AuthorBarChart from './AuthorBarChartH'
 
 
 const font = "'Consolas', monospace";
@@ -1058,7 +1058,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
               <p style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400, fontSize: '12px', color: '#6b7280', lineHeight: '22px', margin: '0 0 6px 0' }}>
                 Top Author Chart
               </p>
-              <div style={{ height: '350px' }}>
+              <div style={{ height: '400px' }}>
                 {authors?.length > 0 ? (
                   <AuthorBarChart rawData={authors} selectAuthor={onSelectAuthor} updateData = {async ()  => {
                     await updateFavoritePapers(
