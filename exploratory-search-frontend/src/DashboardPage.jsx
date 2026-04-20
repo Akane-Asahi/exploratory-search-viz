@@ -187,7 +187,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
           axios.get('http://localhost:5000/api/topic-timeline'),
           axios.get('http://localhost:5000/api/terminology'), 
           axios.get('http://localhost:5000/api/paper-network'),
-          axios.get('http://localhost:5000/api/top-cited?limit=20'),
+          axios.get('http://localhost:5000/api/top-cited?workType=article'),
           axios.get('http://localhost:5000/api/tags?limit=100'),
           axios.get('http://localhost:5000/api/authors')
         ]);

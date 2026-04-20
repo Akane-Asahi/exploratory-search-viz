@@ -34,6 +34,18 @@ const getPaperTopics = (paper) => {
   return [...new Set([primaryTopic, ...tags, ...keywords].filter(Boolean))];
 };
 
+const ARTICLE_LIKE_TYPES = ["article", "proceedings-article"];
+const buildWorkTypeQuery = (requestedType = "article") => {
+  const normalized = (requestedType || "article").toString().trim().toLowerCase();
+  if (!normalized || normalized === "all") {
+    return {};
+  }
+  if (normalized === "article") {
+    return { workType: { $in: ARTICLE_LIKE_TYPES } };
+  }
+  return { workType: normalized };
+};
+
 // --- HELPER: Format paper for frontend tables to fix authors and NaN errors ---
 const formatPaperForFrontend = (paper) => {
   const authorsArray = Array.isArray(paper.authors)
@@ -77,9 +89,11 @@ app.get("/api/trends", async (req, res) => {
 app.get("/api/top-cited", async (req, res) => {
   try {
     const limit = req.query.limit ? parseInt(req.query.limit, 10) : 0;
-    
+    const workType = req.query.workType || "article";
+    const query = buildWorkTypeQuery(workType);
+
     // ADDED .lean() and the formatting map!
-    const rawPapers = await Paper.find().sort({ citationCount: -1 }).limit(limit).lean();
+    const rawPapers = await Paper.find(query).sort({ citationCount: -1 }).limit(limit).lean();
     const formattedPapers = rawPapers.map(formatPaperForFrontend);
     
     res.json(formattedPapers);
@@ -155,7 +169,7 @@ app.get("/api/papers/dashboard-stats", async (req, res) => {
 
     // Top 10 Most Cited Papers for the Table
     // ADDED .lean() and the formatting map!
-    const rawTopPapers = await Paper.find()
+    const rawTopPapers = await Paper.find(buildWorkTypeQuery("article"))
       .sort({ citationCount: -1 })
       .limit(10)
       .lean();

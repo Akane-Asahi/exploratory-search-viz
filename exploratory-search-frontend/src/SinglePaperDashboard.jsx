@@ -139,7 +139,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
           
           
           axios.get('http://localhost:5000/api/paper-network?limit=20'),
-          axios.get('http://localhost:5000/api/top-cited?limit=20'),
+          axios.get('http://localhost:5000/api/top-cited?workType=article'),
           axios.get('http://localhost:5000/api/keywords?limit=100'),
           axios.get(`http://localhost:5000/api/yearly-citations/${paper._id}`),
           axios.get(`http://localhost:5000/api/closest-papers/${paper._id}`),
