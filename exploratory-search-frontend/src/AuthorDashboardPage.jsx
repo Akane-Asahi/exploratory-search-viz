@@ -258,8 +258,8 @@ function AuthorDashboard({ author,onReturn, searchTerm, onNewSearch, onSelectPap
   }, [fetchData]);
 
   return (
-    <div style={{ backgroundColor: '#f9fafb', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
-      {Object.entries(favoritePaperTopicsRef.current).map(([id, terms]) => <p>{id +" " + terms}</p>) }
+    <div style={{ backgroundColor: '#f9fafb', minHeight: '100vh', display: 'flex', flexDirection: 'column', marginBottom: "60px" }}>
+    
       <div style={{
         backgroundColor: '#ffffff',
         borderBottom: '1px solid #eeeff0',
@@ -414,7 +414,7 @@ function AuthorDashboard({ author,onReturn, searchTerm, onNewSearch, onSelectPap
                                   await updateFavoriteTerms(searchTerm, favoriteRankedKeywordsRef.current);
                                 } catch (err) {
                                 } finally {
-                                  onNewSearch(); 
+                                  onSelectPaper(paper);
                         
                                 }
                               }}  style={{ color: '#2563eb', textDecoration: 'none', cursor: 'pointer' }}>

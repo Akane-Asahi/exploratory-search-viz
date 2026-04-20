@@ -272,7 +272,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
 
 
   return ( <MathJaxContext>
-    <div style={{ backgroundColor: '#f9fafb', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: '#f9fafb', minHeight: '100vh', display: 'flex', flexDirection: 'column', marginBottom: "60px"}}>
       <div style={{
         backgroundColor: '#ffffff',
         borderBottom: '1px solid #eeeff0',

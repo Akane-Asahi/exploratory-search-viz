@@ -19,8 +19,8 @@ function CitedLineChart({ rawData, type }) {
     }
     const marginTop = 30;
     const marginRight = 40;
-    const marginBottom = 40;
-    const marginLeft = 50;
+    const marginBottom = 70;
+    const marginLeft = 70;
     const width = containerRef.current.clientWidth;
     
 
@@ -31,7 +31,7 @@ function CitedLineChart({ rawData, type }) {
         year: d.year
       }))
       .sort((a, b) => a.year - b.year)
-      .filter((a) => a.year >= 2012);
+      .filter((a) => 2026 > a.year >= 2012);
       
       
 
@@ -65,34 +65,108 @@ function CitedLineChart({ rawData, type }) {
       .tickSizeOuter(0))
       .call(g => g.selectAll("text")
         .style("font-size", "12px")
-        .attr("transform", "rotate(-10)")
+        .attr("transform", "rotate(-35)")
         .style("text-anchor", "end")
         .attr("dx", "-0.5em")
-        .attr("dy", "0.25em"));
+        .attr("dy", "0.25em"))
+      .call(g => g.append("text")
+        .attr("x", width / 2)
+        .attr("y", marginBottom - 5)
+        .attr("fill", "#6b7280")
+        .attr("text-anchor", "middle")
+        .attr("font-size", "12px")
+        .text("Year"));
       
       
 
   
     svg.append("g")
       .attr("transform", `translate(${marginLeft},0)`)
-      .call(d3.axisLeft(y).ticks(height / 40))
+      .call(d3.axisLeft(y).ticks(height / 60))
       .call(g => g.select(".domain").remove())
       .call(g => g.selectAll(".tick line").clone()
           .attr("x2", width - marginLeft - marginRight)
           .attr("stroke-opacity", 0.1))
       .call(g => g.selectAll("text")
           .style("font-size", "15px"));
+
+    svg.append("text")
+      .attr("transform", `translate(${marginLeft - 40}, ${height / 2}) rotate(-90)`)
+      .attr("text-anchor", "middle")
+      .attr("fill", "#6b7280")
+      .attr("font-size", "12px")
+      .text("Citations");
       
+                
     const texttoolCites = svg.append("text")
       .style("opacity", 0)
       .attr("font-size", "9px")
       .attr("fill", colour);
+
+    
 
     svg.append("path")
       .attr("fill", "none")
       .attr("stroke", colour)
       .attr("stroke-width", 3)
       .attr("d", line(flatData));
+      
+    const bisect = d3.bisector(d => d.year).center;
+
+
+    const tooltip = svg.append("g").style("display", "none");
+
+    tooltip.append("circle")
+      .attr("r", 5)
+      .attr("fill", colour);
+
+  
+
+    const tooltipText = tooltip.append("text")
+      .attr("x", 0)
+      .attr("fill", colour)
+      .style("font-size", "11px");
+
+ 
+
+    tooltipText.append("tspan")
+      .attr("class", "tooltip-count")
+      .attr("x", 0)
+      .attr("dy", "-1em");
+
+    
+    svg.append("rect")
+      .attr("width", width - marginLeft - marginRight)
+      .attr("height", height - marginTop - marginBottom)
+      .attr("transform", `translate(${marginLeft}, ${marginTop})`)
+      .attr("fill", "none")
+      .attr("pointer-events", "all")
+      .on("mousemove", (event) => {
+        const [mx] = d3.pointer(event);
+        const adjustedX = mx - marginLeft;
+        const xYear = x.invert(mx);
+        
+        const index = bisect(flatData, xYear, 1);
+        const d0 = flatData[index - 1];
+        const d1 = flatData[index] || d0;
+        
+       
+        const d = xYear - d0.year > d1.year - xYear ? d1 : d0;
+
+        tooltip.style("display", null);
+        tooltip.attr("transform", `translate(${x(d.year)}, ${y(d.count)})`);
+
+        
+        const flip = x(d.year) > width - 120;
+        tooltip.select("rect").attr("x", flip ? -90 : -10);
+        tooltipText.selectAll("tspan").attr("x", flip ? -84 : -10);
+
+        
+        tooltip.select(".tooltip-count").text(` ${d.count}`);
+      })
+      .on("mouseleave", () => {
+        tooltip.style("display", "none");
+      });
 
     }, [rawData]);
 

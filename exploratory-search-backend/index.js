@@ -194,7 +194,7 @@ app.put("/api/insert-favorite-paper/:searchTerm", async (req, res) => {
       { upsert: true }
     );
 
-    console.log(result);
+    
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
