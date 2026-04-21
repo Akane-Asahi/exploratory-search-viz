@@ -9,6 +9,9 @@ function CitedLineChart({ rawData, type }) {
     if (!rawData || !Array.isArray(rawData) || rawData.length === 0) return;
     if (!containerRef.current) return;
     let colour;
+    let fontColour = "#a8afb9";
+    let labelColour = "#c5c8cd;"
+    let axisColour = "#939699"
     const height = containerRef.current.clientHeight;
     if (type === "paper"){
       colour = "lightblue";
@@ -63,9 +66,14 @@ function CitedLineChart({ rawData, type }) {
       .ticks(Math.max(flatData.length,10))
       .tickFormat(d3.format("d")) 
       .tickSizeOuter(0))
+      .call(g => g.select(".domain")
+        .attr("stroke", axisColour))  
+      .call(g => g.selectAll(".tick line")
+        .attr("stroke", axisColour))
       .call(g => g.selectAll("text")
-        .style("font-size", "12px")
+        .style("font-size", "10px")
         .attr("transform", "rotate(-35)")
+        .attr("stroke", fontColour)
         .style("text-anchor", "end")
         .attr("dx", "-0.5em")
         .attr("dy", "0.25em"));
@@ -76,24 +84,30 @@ function CitedLineChart({ rawData, type }) {
     svg.append("g")
       .attr("transform", `translate(${marginLeft},0)`)
       .call(d3.axisLeft(y).ticks(height / 60))
+      .attr("stroke", fontColour)
       .call(g => g.select(".domain").remove())
       .call(g => g.selectAll(".tick line").clone()
           .attr("x2", width - marginLeft - marginRight)
           .attr("stroke-opacity", 0.1))
+          .attr("stroke", axisColour)
       .call(g => g.selectAll("text")
-          .style("font-size", "15px"));
+          .style("font-size", "8px"))
+          .attr("stroke", fontColour);
 
     svg.append("text")
-    .attr("transform", `translate(${marginLeft - 40}, ${height / 2}) rotate(-90)`)
-    .attr("text-anchor", "middle")
-    .attr("fill", "#6b7280")
-    .attr("font-size", "12px")
-    .text("Citations");
+      .attr("transform", `translate(${marginLeft - 40}, ${height / 2}) rotate(-90)`)
+      .attr("text-anchor", "middle")
+      .attr("fill", labelColour)
+      .attr("font-size", "12px")
+      .text("Citations");
+
+
       
                 
     const texttoolCites = svg.append("text")
       .style("opacity", 0)
       .attr("font-size", "9px")
+      .attr("stroke", fontColour)
       .attr("fill", colour);
 
     

@@ -754,7 +754,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
                                 background: 'transparent',
                                 cursor: 'pointer',
                                 padding: 0,
-                                fontSize: '13px',
+                                fontSize: '20px',
                                 lineHeight: 1,
                                 color: isFavorited ? '#ef4444' : (isFocused ? '#ffffff' : '#9ca3af')
                               }}
@@ -997,7 +997,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
                               background: 'transparent',
                               cursor: 'pointer',
                               padding: 0,
-                              fontSize: '13px',
+                              fontSize: '20px',
                               lineHeight: 1,
                               color: favoriteKeywordSet.has(normalizeLabel(term.name)) ? '#ef4444' : '#9ca3af'
                             }}
@@ -1104,7 +1104,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
           }}
         >
           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 600, color: '#111827' }}>
-            Favorite Keywords {hasActiveFavoriteFilter ? '(Filtered)' : ''}
+            Favorite Topics {hasActiveFavoriteFilter ? '(Filtered)' : ''}
           </span>
           <button
             type="button"

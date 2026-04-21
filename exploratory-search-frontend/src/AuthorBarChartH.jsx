@@ -55,7 +55,7 @@ function AuthorBarChart({ rawData, selectAuthor ,updateData}) {
    
     const height = containerRef.current.clientHeight;
 
-    const citeColour = "#A8E6A3";
+    const citeColour = "#93db8d";
     const countColour = "steelblue"
 
     const flatData = rawData
@@ -103,7 +103,7 @@ function AuthorBarChart({ rawData, selectAuthor ,updateData}) {
     
     const texttoolCount = svg.append("text")
       .style("opacity", 0)
-      .attr("font-size", "9px")
+      .attr("font-size", "10px")
       .attr("fill", countColour);
     
     svg.append("g")
@@ -122,8 +122,8 @@ function AuthorBarChart({ rawData, selectAuthor ,updateData}) {
           .style("opacity", .5);
         texttoolCount
           .style("opacity", 1)
-          .attr("x", x(d.name) + xSub('count')  +5) 
-          .attr("y", y(d.count) -4)
+          .attr("x", x(d.name) + xSub('count')  +8) 
+          .attr("y", y(d.count) -6)
           .text(formatCites(d.count));
 
       })
@@ -142,7 +142,7 @@ function AuthorBarChart({ rawData, selectAuthor ,updateData}) {
 
     const texttoolCites = svg.append("text")
       .style("opacity", 0)
-      .attr("font-size", "9px")
+      .attr("font-size", "10px")
       .attr("fill", citeColour);
 
     svg.append("g")
@@ -162,7 +162,7 @@ function AuthorBarChart({ rawData, selectAuthor ,updateData}) {
         texttoolCites
           .style("opacity", 1)
           .attr("x", x(d.name) + xSub('cites') ) 
-          .attr("y", yr(d.cites) -4)
+          .attr("y", yr(d.cites) -6)
           .text(formatCites(d.cites));
 
       })

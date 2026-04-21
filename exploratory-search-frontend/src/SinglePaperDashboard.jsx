@@ -507,7 +507,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
                                 background: 'transparent',
                                 cursor: 'pointer',
                                 padding: 0,
-                                fontSize: '13px',
+                                fontSize: '20px',
                                 lineHeight: 1,
                                 color: isFavorited ? '#ef4444' :  '#9ca3af'
                               }}
@@ -598,7 +598,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
           }}
         >
           <span style={{ fontFamily: "'Inter', sans-serif", fontSize: '12px', fontWeight: 600, color: '#111827' }}>
-            Favorite Keywords 
+            Favorite Topics
           </span>
           <button
             type="button"
