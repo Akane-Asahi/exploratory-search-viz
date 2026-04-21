@@ -258,7 +258,7 @@ function AuthorDashboard({ author,onReturn, searchTerm, onNewSearch, onSelectPap
   }, [fetchData]);
 
   return (
-    <div style={{ backgroundColor: '#f9fafb', minHeight: '100vh', display: 'flex', flexDirection: 'column', marginBottom: "60px" }}>
+    <div style={{ backgroundColor: '#f9fafb', minHeight: '100vh', display: 'flex', flexDirection: 'column', marginBottom: "100px" }}>
     
       <div style={{
         backgroundColor: '#ffffff',
@@ -524,10 +524,10 @@ function AuthorDashboard({ author,onReturn, searchTerm, onNewSearch, onSelectPap
                   display: "flex",
                   flexWrap: "wrap",
                   gap: "6px",
-                  maxHeight: "250px",        
+                  maxHeight: "200px",        
                   overflowY: "auto",
                   scrollBehavior: "smooth",
-                  bottomMargin: "10px"
+                  bottomMargin: "20px"
                 }}  >
                   {uniqueTags.map((tag, i) => (
                     <button

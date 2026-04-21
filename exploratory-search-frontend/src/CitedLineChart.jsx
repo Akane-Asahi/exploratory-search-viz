@@ -118,7 +118,7 @@ function CitedLineChart({ rawData, type }) {
       .attr("stroke-width", 3)
       .attr("d", line(flatData));
       
-    const bisect = d3.bisector(d => d.year).center;
+    const bisect = d3.bisector(d => d.year).right;
 
 
     const tooltip = svg.append("g").style("display", "none");
@@ -158,7 +158,7 @@ function CitedLineChart({ rawData, type }) {
         const d1 = flatData[index] || d0;
         
        
-        const d = xYear - d0.year > d1.year - xYear ? d1 : d0;
+        const d = d1;
 
         tooltip.style("display", null);
         tooltip.attr("transform", `translate(${x(d.year)}, ${y(d.count)})`);
