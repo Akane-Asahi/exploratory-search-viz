@@ -73,6 +73,7 @@ Open a second terminal and run:
 ```bash
 cd exploratory-search-frontend
 npm install
+npm install better-react-mathjax
 ```
 
 Create `.env` inside `exploratory-search-frontend`:
