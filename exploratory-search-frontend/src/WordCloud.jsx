@@ -23,8 +23,6 @@ const WordCloud = ({ rawData,selectWord}) => {
       .sort((a, b) => b.size - a.size)
       .slice(0, 25);
 
-    const colorScale = d3.interpolateBlues;
-
     const svg = d3.select(svgRef.current);
     svg.selectAll("*").remove();
 

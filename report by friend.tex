@@ -1,0 +1,139 @@
+\documentclass[sigconf]{acmart}
+
+
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs}
+
+
+\title{Your Paper Title Here}
+
+\author{First Author}
+\affiliation{%
+  \institution{Your Institution}
+  \city{City}
+  \country{Country}
+}
+\email{author@email.com}
+
+\author{Second Author}
+\affiliation{%
+  \institution{Your Institution}
+  \city{City}
+  \country{Country}
+}
+\email{author2@email.com}
+
+\author{Second Author}
+\affiliation{%
+  \institution{Your Institution}
+  \city{City}
+  \country{Country}
+}
+\email{author2@email.com}
+\title{CS837 Report}
+
+\begin{document}
+
+\begin{abstract}
+This is your abstract.
+\end{abstract}
+
+\maketitle
+
+
+\section{Introduction}
+
+The numbers of scientific research papers have grown tremendously over the past years. The researchers are usually challenged when searching over vast amounts of papers. Since the traditional search systems tend to generate long lists of results. These lists do not assist users to grasp trends, relationships and key topics without any complications. Most of the research and visualizations for on research papers focuses on relations between citations and authors. In a bid to solve this issue, this project suggests an interactive visualization system to be used in conducting exploratory research based on the concepts and core ideas within a paper. We show that this system can allow users to quickly understand trends in concepts and compare different concepts to each other. The system enables the users to find a topic and browse through research papers visually through various kinds of visualizations of line charts, bar charts, and a force graph. The system is developed based on the latest web technologies. We use React as the user interface, Node.js as the backend, MongoDB as the data storage, and D3.js as the visualizer. This project is aimed at making the users more familiar with the trends of concepts inside of research, the correlations between the topics, and the general organization of scientific knowledge in a manner that is quick and easy to use and understand.
+\section{Problem and Domain and User Task}
+The scientific literature exploration based on the concepts inside of papers is the problem domain in this project. The users, which include students, researchers, and analysts must be able to comprehend a large amount of research papers in a field efficiently.  The biggest challenge is that the traditional search systems offer only results presented in the form of texts and it is not easy to detect patterns, trends and relationships among research topics. There are not many tools that exist the help users understand the relationships between different topics in a way that is useful for research.  This dashboard is aimed primarily for students, professors and researchers who want to analyse different areas of research. The primary objective of the system is to help the users find areas of research for their studies and papers in that area. From using this system, the user would gain an understanding of the trends of a topic over time, and top papers based on a topic. They would also gather an understanding of the relationships between different concepts and different papers within a field. The user will also quickly see the related co-concepts of the concept that they are researching and how different released papers relate the concepts together. 
+This system facilitates all these tasks by allowing users to think less and comprehend more, as a result of interactive visualizations. The dashboard allows the user to quickly gather information about a concept, which allows the to search through many concepts in a limited period of time. The users can quickly understand the relationships between different papers and find papers based on their area of research.  This system allows the users to look at a dashboard and quickly gather information about the trends and top research in each field. 
+\section{Literature Review}
+When relying on the traditional search tools to locate the necessary information, it can be hard to understand large collections of research papers that are displayed in a form of a long list. In order to solve this problem, the previous studies have focused on the application of visualization techniques in assisting analysis of scientific literature. The strategies are aimed at visual and interactive representation of trends, relationships and significant contributions. Cite Space is one of the contributions that have been made in this field, and it offers the possibility to visualize patterns and trends in academic literature. Chen (2006) \cite{chen2006citespace} argues that citation information can be utilized to determine significant papers and promising research areas in the course of time. Through the analysis of the frequency of citation of papers and the evolution of the topics, the user can have a better understanding of the evolution of a research area. The given approach directly contributes to the fact that the research activity is dynamic and can be investigated using temporal visualizations. Along with determining trends, it is also necessary to comprehend the relationship between topics. VOS viewer was developed by Van Eck and Waltman \cite{vaneck2010vosviewer} and is a software that is used to build bibliometric networks and visualize them. Their work demonstrates the way in which relationships between topics, authors, and publications could be drawn by means of network graphs with the strongly related items being shown closer to each other. With this form of visualization, users can find relationships among the research themes and can identify groups of topics and this is very beneficial when one is studying interdisciplinary fields. The other significant trend in the literature is directed towards visual treatment of massive document collections. The systems that are created in this regard are meant to enable users to browse and comprehend a vast amount of textual information effectively. Indicatively, methods of visual analytics help users to learn more about patterns, cluster similar documents, and identify trends without necessarily having to read through every paper. The method emphasizes the benefit of visualization in terms of decreasing the cognitive load and enhancing the effectiveness of information search. Equally, topic-based visualization systems like TIARA show how research topics can be tracked and displayed as time goes by. These systems can enable users to engage in exploring topics dynamically to understand the way some particular themes rise, expand or disappear. This type of approaches underlines that research topics are not fixed and permanent but constantly changing and with visual tools, they can create relevant information about the details of the changes. In a bigger sense, the visual analytics idea offers the theoretical basis of these systems. According to Keim et al. \cite{keim2010visualanalytics} visual analytics refers to the unification of automatic analysis of data with interactive visualization and allows the user to understand complex data better. This view points out the significance of human interaction during the analysis process, users can engage with data, make decisions and narrow down their knowledge with the help of visual interfaces. Lastly, studies on mapping scientific knowledge also confirm the notion that one may visualize whole research domains. Borer (2010) describes the application of science mapping methods in the uncovering of the organization and development of fields of knowledge. Representing research areas as visual maps will allow users to better comprehend the relationship among various topics and how scientific knowledge evolves with time. All in all, these studies show that the use of visualization is an effective method of literature exploration in science. They demonstrate that trends, relationships and valuable contributions can be well presented using interactive visual systems. Basing on these concepts, the proposed project will make attempts to create a visualization platform that would allow users to conduct exploratory search research using a timeline, citation, and relational based visualizations. 
+
+\section{System Design and Implementation}
+The system is a complete web-based application intended to facilitate the exploratory research in terms of visualization.
+The system is made up of four key parts:
+
+1. Frontend:
+   React is used to develop the frontend. It offers the user interface in which users are able to input search queries and visualizations.
+
+2. Backend:
+   The back-end will be developed on Node.js and Express. It is responsible of taking user requests, retrieving research data outside of NIAID like OpenAlex and processing the data.
+
+3. Database:
+   The data on research papers are stored using MongoDB. It enables storage of document-based information in a flexible manner i.e. in terms of titles, years and topics. The data is gathered from the OpenAlex API.
+
+4. Visualization:
+   D3.js is used to create interactive visualizations. It connects the data to graphical objects and produces dynamic charts.
+The working system process is:
+* The user is typing in a search keyword.
+* The request is relayed to the backend from the frontend.
+*The data is being received and calculate by server.
+The frontend is sent the processed data.
+* D3 plots the data in various forms of graphs.
+
+
+\section{Visualization Design}
+For the main page a dashboard with a stratified layout. We use this stratified layout to organize the data by rows. The first row is for relationships between papers, the second is for trends between papers and the third row is for authors. 
+
+
+The system employs various visualization techniques to display research data in a manner that is effective.
+Line Chart:
+The line chart depicts the trend of the increase in research topics as time goes by. It assists users in comprehending trends and when there is high research activity. Line charts are used to show the citations over time for papers and authors to depict trends.
+Bar Chart:
+The bar chart is used to depict the number of papers and citations that each author has in a field. The bar chart is the most simple and easily comprehended graph to show the number of papers and citations an author has and compare it to author authors using length. 
+Network Graph:
+The network graph represents the connection between the research papers and topics. Papers or topics are represented by nodes and connection between them by edges. This assists the users to navigate through the relationship of various research areas. These visualizations adhere to the major tenets of information visualization like expressiveness and effectiveness. They assist users to interpret complicated data in an easy and interactive manner.
+Data: 
+In some cases we just directly showed the data to the user. This can help them quickly read and understand important data without needing to compare large amounts of data. This is used to list the top papers. It is also used to show the concepts in a paper. We also use direct data to list of limited pieces of data such as the authors of a paper or papers that are written by an author.
+
+
+\section{Uses Cases}
+In order to illustrate the usefulness of the system, a sample scenario is taken into account. The usefull ness of the system is that users can quickly search up different concepts keys sequenctially and get useful information about that topic quickly. This allows a new student unsure of what they want to study to quickly look through a bunch of different fields and to find the top authors in those areas. In any given search if the concept graph is typed into the system. The system retrieves pertinent research papers and tracks through them to find there connections based on common citations and concepts. This chart shows the relations between papers in the field of graphs based on their core ideas. The user can drill down on a topic and get a graph with connections based on that topic.  The line chart illustrates the development of research on graphs over the years. The line chart will also go through all of the related concepts to graphs such as Advanced Graph Neural Networks or Data Mining to show the user the trends on all of these topics. The user can scroll down to the bar chart to find the authors in the field and look at the author page. In the author page the can see all of the collected papers that that author wrote and their co-authors. The user can drill down on a given paper to see the authors of the paper and the closest papers that the search collected.  The network graph shows the correlation among various papers and concepts. These visualizations allow the user to grasp the structure of the research field in a short time without having to read individual papers.
+
+\section{Benifits and Limitations}  
+The system suggested has a number of significant benefits to users of scientific literature. First, it enhances clarity and understanding greatly by converting extensive textual data into visual informations. Users do not need to read long lists of papers to understand trends, patterns and relationships; through charts and graphs they can quickly interpret these relationships, patterns and trends. This streamlines the research process and makes it more intuitive. Second, the system assists in lessening the cognitive burden on users. In the case of traditional search engines, users will have to manually compare and analyze various documents, which can be time-consuming and mentally taxing. Conversely, this system displays summarized information in the form of visualizations, which enables users to comprehend advanced information with reduced efforts. In this system 
+Interactive exploration is also another great advantage. Users do not need to view the results as being static but they can interactively explore various aspects of the data. As an illustration, they will be able to see the change of topics over time with the help of line charts, find the most prolific authors in the field with the help of bar charts, and see connections between papers based on their citations and their papers with networks graphs. This interactive style encourages searching and browsing, in which users do not necessarily want to find a predetermined purpose but desire to make discoveries. The system also facilitates trend analysis and decision making. Users can see how research activity is changing over time, and how it is possible to identify emerging topics, areas of research popularity, and those that are on the downward trend. It is especially helpful to students who choose the topics of their research or researchers who study the gaps in the literature. In spite of these positive features, there are a number of limitations to the system. A major constraint is that it is dependent on data quality and availability. The accuracy and usefulness of the visualizations depend on the quality of the data retrieved from external sources such as OpenAlex. When the data is not complete or divergent, then the outcomes can be misleading. Unfortunately, there is coverage gaps in the OpenAlex's API so there is missing data in recent years. The other issue with the data is the labeling of concepts. In some cases the API label a paper as having a certain concept which does not accurately describe the topics that the paper covered. Performance and scalability is another constraint. The system can also slow in processing time when dealing with large datasets particularly in fetching data from the backend and visualization rendering. This may impact user experience, especially when you need a great number of papers.  The system is also complicated. It is based on several technologies such as React, Node.js, MongoDB and D3.js. This makes development and maintenance more complex, and needs technical knowledge to maintain and enhance the system.
+In addition, there are usability issues. The line charts and bar charts are well known and easy to read among the general population, especially those who are looking for academic research topics, but the force graph is not easy to read and it will require time for the user to fully understand. The user interface is not super complicated, but understanding how to use all of the features can take some time and will not come instantly to most users. We expect that after using to tools a few times users will understand and be able to remember how to use it.  It is primarily topic trend and relationship oriented, although does not, as yet, provide the advanced options of deep semantic analysis, personalized recommendations, or real time updates. The system does not use data about the user to personalize the system.  The features may further enhance the system in the future work.
+
+\section{Conclusion}
+Finally, the given project introduces a visualization-oriented system of exploratory research. The system allows users to comprehend research trends, topics and relations more efficiently with the help of combining the modern web technologies and visualization techniques.
+D3.js is used because it allows interactive and dynamic visualization, and MongoDB and Node.js are utilized because they allow efficient processing of data. This project shows the significance of visualization in working with large datasets and enhancing the user comprehension.
+Further development of the work can involve better performance, increased visualization, and user interaction.
+
+
+\section{Appendix}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{SearchPage.png}
+    \caption{Search Page}
+    \label{fig:enter-label}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{MainGraph.png}
+    \caption{Main Graph}
+    \label{fig:enter-label}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{Topics.png}
+    \caption{Topic Charts}
+    \label{fig:enter-label}
+\end{figure}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}opic Charts}
+    \label{fig:enter-label}
+\end{figure}
+
+\bibliographystyle{plain}
+\bibliography{references}
+
+\end{document}

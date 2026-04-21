@@ -1,0 +1,32 @@
+Project Report
+The purpose of the project report is for you to effectively communicate your
+research activities. Prior to beginning your draft of this report, you should carefully
+read the following article to help guide your writing:
+T. Munzner. Process and pitfalls in writing information visualization papers. In A.
+Kerren, J. T. Stasko, J.-D. Fekete, and C. North, editors, Information Visualization:
+Human-Centered Issues and Perspectives, LNCS 4950, pages 134–153. Springer,
+2008.
+Your report should be written in the style of a conference paper. You should provide
+adequate descriptions of the following:
+• problem domain (users’ tasks and goals for visualizing the data)
+• relevant literature
+• proposed solution
+• case study or scenario of use
+• discussion on benefits and limitations
+Prepare your article based on the ACM formatting guide:
+https://www.acm.org/publications/authors/submissions
+You will find that the LaTeX template will produce the best results, but it may take
+some time to get familiar with how LaTeX works. This is worth your effort. Take
+special care in how references are formatted.
+In addition to marking for content, deductions will be made based on poor
+formatting, structure, style, grammar, spelling, and referencing. Your paper should
+be 7-10 pages.
+Academic Integrity
+While you may talk about the work on your project with your classmates to help
+each other understand what is needed, all the work submitted must be your own
+group or individual software development and writing. You are welcome to use
+whatever third-party visualization frameworks, tools, and extensions you can find.
+However, these details must be clearly documented both within the written
+submission and your source code.
+Please familiarize yourself with the Generative AI Tools policy specified in the
+course syllabus.

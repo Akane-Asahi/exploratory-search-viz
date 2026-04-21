@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {updateFavoritePapers, getFavoritePaper, getFavoriteTerms, updateFavoriteTerms} from './BackFetch'
 import axios from 'axios';
 import TopicChart from './TopicChart';
@@ -150,7 +150,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
   const favoritePaperTopicsRef = useRef(favoritePaperTopics);
   const favoriteRankedKeywordsRef = useRef(favoriteRankedKeywords);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const paperData = await getFavoritePaper(searchTerm);
     const termData = await getFavoriteTerms(searchTerm);
     
@@ -164,7 +164,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
 
     setFavoritePaperTopics(buildMap(paperData?.papers));
     setFavoriteRankedKeywords(termData?.terms || []);
-  };
+  }, [searchTerm]);
 
   
   const fetchData = useCallback(async () => {
@@ -222,7 +222,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
   useEffect(() => {
     favoritePaperTopicsRef.current = favoritePaperTopics;
     favoriteRankedKeywordsRef.current = favoriteRankedKeywords;
-  },[[favoriteRankedKeywords,favoriteRankedKeywords]]);
+  }, [favoritePaperTopics, favoriteRankedKeywords]);
   useEffect(() => {
 
     fetchData();
@@ -231,7 +231,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     return () => {
       if (pollInterval.current) clearInterval(pollInterval.current);
     };
-  }, [fetchData]);
+  }, [fetchData, loadData]);
 
   const sortedPapers = [...topPapers].sort((a, b) => {
     if (tableSort === 'citations') return (b.citationCount || 0) - (a.citationCount || 0);
@@ -240,7 +240,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     return 0;
   });
 
-  const sortedTerminologies = React.useMemo(() => {
+  const sortedTerminologies = useMemo(() => {
     const list = [...topTerminologies];
     if (rankedTableSort === 'trend') {
       return list.sort((a, b) => {
@@ -263,14 +263,14 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     });
   }, [topTerminologies, rankedTableSort]);
 
-  const top5RankedTerminologies = React.useMemo(
+  const top5RankedTerminologies = useMemo(
     () => sortedTerminologies.slice(0, 5),
     [sortedTerminologies]
   );
 
   
 
-  const terminologyByName = React.useMemo(() => {
+  const terminologyByName = useMemo(() => {
     const map = new Map();
     topTerminologies.forEach((term) => {
       const key = normalizeLabel(term?.name);
@@ -301,7 +301,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     return cumulative.map((value) => Math.max(0, Math.round(value * scale)));
   }, []);
 
-  const timelineConcepts = React.useMemo(() => {
+  const timelineConcepts = useMemo(() => {
     const favoriteKeywordCandidates = [];
     Object.values(favoritePaperTopics).forEach((terms) => {
       (terms || []).forEach((term) => favoriteKeywordCandidates.push(term));
@@ -320,7 +320,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     return ordered;
   }, [top5RankedTerminologies, favoritePaperTopics, favoriteRankedKeywords]);
 
-  const topicColorMap = React.useMemo(() => {
+  const topicColorMap = useMemo(() => {
     const map = {};
     top5RankedTerminologies.forEach((term, index) => {
       const key = normalizeLabel(term?.name);
@@ -338,7 +338,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     return map;
   }, [top5RankedTerminologies, timelineConcepts]);
 
-  const filteredEvolutionData = React.useMemo(() => {
+  const filteredEvolutionData = useMemo(() => {
     const rawRows = Array.isArray(evolutionData?.data) ? evolutionData.data : [];
     const conceptKeySet = new Set(timelineConcepts.map((name) => normalizeLabel(name)).filter(Boolean));
 
@@ -400,7 +400,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     });
   }, []);
 
-  const favoriteKeywords = React.useMemo(() => {
+  const favoriteKeywords = useMemo(() => {
     const byKey = new Map();
     Object.values(favoritePaperTopics).forEach((terms) => {
       (terms || []).forEach((term) => {
@@ -417,7 +417,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     return Array.from(byKey.values());
   }, [favoritePaperTopics, favoriteRankedKeywords]);
 
-  const favoriteKeywordSet = React.useMemo(
+  const favoriteKeywordSet = useMemo(
     () => new Set(favoriteKeywords.map((term) => normalizeLabel(term)).filter(Boolean)),
     [favoriteKeywords]
   );
@@ -471,17 +471,16 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     });
   }, [favoriteKeywordSet, removeFavoriteKeyword]);
 
-  const activeFilterTermSet = React.useMemo(
+  const activeFilterTermSet = useMemo(
     () => new Set(activeFilterTerms.map((term) => normalizeLabel(term)).filter(Boolean)),
     [activeFilterTerms]
   );
   const clearKeywords = useCallback(() => {
-      setFavoritePaperTopics({});
-      setFavoriteRankedKeywords([]);
-  }
-  );
+    setFavoritePaperTopics({});
+    setFavoriteRankedKeywords([]);
+  }, []);
 
-  const paperMatchDetails = React.useMemo(() => {
+  const paperMatchDetails = useMemo(() => {
     const details = new Map();
     const totalSelectedTerms = activeFilterTermSet.size;
     sortedPapers.forEach((paper) => {
@@ -504,7 +503,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     return details;
   }, [sortedPapers, activeFilterTermSet]);
 
-  const filteredSortedPapers = React.useMemo(() => {
+  const filteredSortedPapers = useMemo(() => {
     if (activeFilterTermSet.size === 0) return sortedPapers;
     return sortedPapers.filter((paper) => {
       const key = String(paper?._id || '');
@@ -513,12 +512,12 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
     });
   }, [sortedPapers, activeFilterTermSet, paperMatchDetails]);
 
-  const filteredPaperIdSet = React.useMemo(() => {
+  const filteredPaperIdSet = useMemo(() => {
     if (activeFilterTermSet.size === 0) return null;
     return new Set(filteredSortedPapers.map((paper) => String(paper?._id || '')).filter(Boolean));
   }, [filteredSortedPapers, activeFilterTermSet]);
 
-  const filteredPaperNetwork = React.useMemo(() => {
+  const filteredPaperNetwork = useMemo(() => {
     if (!filteredPaperIdSet) return paperNetwork;
     const resolveEndpointId = (value) => {
       if (typeof value === 'string') return value;
@@ -542,7 +541,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
 
   const hasActiveFavoriteFilter = activeFilterTermSet.size > 0;
 
-  const nodeConfidenceById = React.useMemo(() => {
+  const nodeConfidenceById = useMemo(() => {
     if (!hasActiveFavoriteFilter) return {};
     const confidenceMap = {};
     const totalSelectedTerms = activeFilterTermSet.size;
