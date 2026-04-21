@@ -6,6 +6,7 @@ import PaperForceGraph from './PaperForceGraph';
 import BarGraph from './Bargraph'
 import WordCloud from './WordCloud'
 import CitedLineChart from './CitedLineChart';  
+import API_BASE_URL from './apiBase';
 
 import SinglePaperDashboard from './SinglePaperDashboard';
 
@@ -93,7 +94,7 @@ function AuthorDashboard({ author,onReturn, searchTerm, onNewSearch, onSelectPap
 
   const fetchData = useCallback(async () => {
     try {
-        const resStats = await axios.get('http://localhost:5000/api/papers/dashboard-stats');
+        const resStats = await axios.get(`${API_BASE_URL}/api/papers/dashboard-stats`);
         
         
         const dashboardStats = resStats.data.stats;
@@ -104,14 +105,14 @@ function AuthorDashboard({ author,onReturn, searchTerm, onNewSearch, onSelectPap
         if (pollInterval.current) clearInterval(pollInterval.current);
         
         const [resEvo, resTerminology, resNetwork, resTopPapers,resKeywords,resCoauthorPage,resAuthorCitation,resAuthorPapers] = await Promise.allSettled([
-          axios.get('http://localhost:5000/api/topic-timeline?limit=8'),
-          axios.get('http://localhost:5000/api/terminology'), 
-          axios.get('http://localhost:5000/api/paper-network?limit=20'),
-          axios.get('http://localhost:5000/api/top-cited?workType=article'),
-          axios.get('http://localhost:5000/api/keywords?limit=100'),
-          axios.get(`http://localhost:5000/api/coauthors/${author.name}`),
-          axios.get(`http://localhost:5000/api/author-citation/${author.name}`),
-          axios.get(`http://localhost:5000/api/author-papers/${author.name}`)
+          axios.get(`${API_BASE_URL}/api/topic-timeline?limit=8`),
+          axios.get(`${API_BASE_URL}/api/terminology`), 
+          axios.get(`${API_BASE_URL}/api/paper-network?limit=20`),
+          axios.get(`${API_BASE_URL}/api/top-cited?workType=article`),
+          axios.get(`${API_BASE_URL}/api/keywords?limit=100`),
+          axios.get(`${API_BASE_URL}/api/coauthors/${author.name}`),
+          axios.get(`${API_BASE_URL}/api/author-citation/${author.name}`),
+          axios.get(`${API_BASE_URL}/api/author-papers/${author.name}`)
          
         ]);
 

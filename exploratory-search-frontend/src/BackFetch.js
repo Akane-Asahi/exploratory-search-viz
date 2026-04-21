@@ -1,6 +1,8 @@
 
+import API_BASE_URL from './apiBase';
+
 const updateFavoritePapers = async (searchTerm,papers) => {
-  await fetch(`http://localhost:5000/api/insert-favorite-paper/${searchTerm}`, {
+  await fetch(`${API_BASE_URL}/api/insert-favorite-paper/${searchTerm}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json"
@@ -14,7 +16,7 @@ const updateFavoritePapers = async (searchTerm,papers) => {
 const getFavoritePaper = async (searchTerm) => {
   try {
     const res = await fetch(
-      `http://localhost:5000/api/favorite-paper/${searchTerm}`
+      `${API_BASE_URL}/api/favorite-paper/${searchTerm}`
     );
 
     const data = await res.json();
@@ -27,7 +29,7 @@ const getFavoritePaper = async (searchTerm) => {
 
 
 const updateFavoriteTerms = async (searchTerm,terms) => {
-  await fetch(`http://localhost:5000/api/insert-favorite-term/${searchTerm}`, {
+  await fetch(`${API_BASE_URL}/api/insert-favorite-term/${searchTerm}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json"
@@ -41,7 +43,7 @@ const updateFavoriteTerms = async (searchTerm,terms) => {
 const getFavoriteTerms = async (searchTerm) => {
   try {
     const res = await fetch(
-      `http://localhost:5000/api/favorite-term/${searchTerm}`
+      `${API_BASE_URL}/api/favorite-term/${searchTerm}`
     );
 
     const data = await res.json();

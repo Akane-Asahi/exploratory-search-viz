@@ -6,6 +6,7 @@ import PaperForceGraph from './PaperForceGraph';
 import BarGraph from './Bargraph'
 import WordCloud from './WordCloud'
 import CitedLineChart from './CitedLineChart';
+import API_BASE_URL from './apiBase';
 
 import { MathJax, MathJaxContext } from "better-react-mathjax";
 
@@ -125,7 +126,7 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
 
   const fetchData = useCallback(async () => {
     try {
-        const resStats = await axios.get('http://localhost:5000/api/papers/dashboard-stats');
+        const resStats = await axios.get(`${API_BASE_URL}/api/papers/dashboard-stats`);
               
               
               const dashboardStats = resStats.data.stats;
@@ -138,12 +139,12 @@ function SinglePaperDashboard({ paper,onReturn, searchTerm, onNewSearch, onSelec
         const [  resNetwork, resTopPapers,resKeywords,resCitHistory,resClosestPapers,resAuthorPaper] = await Promise.allSettled([
           
           
-          axios.get('http://localhost:5000/api/paper-network?limit=20'),
-          axios.get('http://localhost:5000/api/top-cited?workType=article'),
-          axios.get('http://localhost:5000/api/keywords?limit=100'),
-          axios.get(`http://localhost:5000/api/yearly-citations/${paper._id}`),
-          axios.get(`http://localhost:5000/api/closest-papers/${paper._id}`),
-          axios.get(`http://localhost:5000/api/paper-authors/${paper._id}`)
+          axios.get(`${API_BASE_URL}/api/paper-network?limit=20`),
+          axios.get(`${API_BASE_URL}/api/top-cited?workType=article`),
+          axios.get(`${API_BASE_URL}/api/keywords?limit=100`),
+          axios.get(`${API_BASE_URL}/api/yearly-citations/${paper._id}`),
+          axios.get(`${API_BASE_URL}/api/closest-papers/${paper._id}`),
+          axios.get(`${API_BASE_URL}/api/paper-authors/${paper._id}`)
         ]);
 
         

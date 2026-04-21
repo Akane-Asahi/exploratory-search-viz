@@ -3,6 +3,7 @@ import {updateFavoritePapers, getFavoritePaper, getFavoriteTerms, updateFavorite
 import axios from 'axios';
 import TopicChart from './TopicChart';
 import PaperForceGraph from './PaperForceGraph';
+import API_BASE_URL from './apiBase';
 
 
 import AuthorBarChart from './AuthorBarChartH'
@@ -170,7 +171,7 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
   const fetchData = useCallback(async () => {
     try {
       // 1. Pointed to correct backend URL and correct route
-      const resStats = await axios.get('http://localhost:5000/api/papers/dashboard-stats');
+      const resStats = await axios.get(`${API_BASE_URL}/api/papers/dashboard-stats`);
 
       
       // 2. Extracted the nested 'stats' object correctly
@@ -184,12 +185,12 @@ function DashboardPage({ searchTerm, onNewSearch ,onSelectPaper ,onSelectAuthor,
         if (pollInterval.current) clearInterval(pollInterval.current);
 
         const [resEvo, resTerminology, resNetwork, resTopPapers,resTags,resAuthors] = await Promise.allSettled([
-          axios.get('http://localhost:5000/api/topic-timeline'),
-          axios.get('http://localhost:5000/api/terminology'), 
-          axios.get('http://localhost:5000/api/paper-network'),
-          axios.get('http://localhost:5000/api/top-cited?workType=article'),
-          axios.get('http://localhost:5000/api/tags?limit=100'),
-          axios.get('http://localhost:5000/api/authors')
+          axios.get(`${API_BASE_URL}/api/topic-timeline`),
+          axios.get(`${API_BASE_URL}/api/terminology`), 
+          axios.get(`${API_BASE_URL}/api/paper-network`),
+          axios.get(`${API_BASE_URL}/api/top-cited?workType=article`),
+          axios.get(`${API_BASE_URL}/api/tags?limit=100`),
+          axios.get(`${API_BASE_URL}/api/authors`)
         ]);
 
         if (resEvo.status === 'fulfilled') {
