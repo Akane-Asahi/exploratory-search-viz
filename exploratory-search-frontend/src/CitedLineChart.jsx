@@ -20,7 +20,7 @@ function CitedLineChart({ rawData, type }) {
     const marginTop = 30;
     const marginRight = 40;
     const marginBottom = 70;
-    const marginLeft = 70;
+    const marginLeft = 50;
     const width = containerRef.current.clientWidth;
     
 
@@ -31,7 +31,7 @@ function CitedLineChart({ rawData, type }) {
         year: d.year
       }))
       .sort((a, b) => a.year - b.year)
-      .filter((a) => 2026 > a.year >= 2012);
+      .filter((a) => a.year >= 2012 && a.year < 2026);
       
       
 
@@ -68,14 +68,7 @@ function CitedLineChart({ rawData, type }) {
         .attr("transform", "rotate(-35)")
         .style("text-anchor", "end")
         .attr("dx", "-0.5em")
-        .attr("dy", "0.25em"))
-      .call(g => g.append("text")
-        .attr("x", width / 2)
-        .attr("y", marginBottom - 5)
-        .attr("fill", "#6b7280")
-        .attr("text-anchor", "middle")
-        .attr("font-size", "12px")
-        .text("Year"));
+        .attr("dy", "0.25em"));
       
       
 
@@ -91,11 +84,11 @@ function CitedLineChart({ rawData, type }) {
           .style("font-size", "15px"));
 
     svg.append("text")
-      .attr("transform", `translate(${marginLeft - 40}, ${height / 2}) rotate(-90)`)
-      .attr("text-anchor", "middle")
-      .attr("fill", "#6b7280")
-      .attr("font-size", "12px")
-      .text("Citations");
+    .attr("transform", `translate(${marginLeft - 40}, ${height / 2}) rotate(-90)`)
+    .attr("text-anchor", "middle")
+    .attr("fill", "#6b7280")
+    .attr("font-size", "12px")
+    .text("Citations");
       
                 
     const texttoolCites = svg.append("text")
