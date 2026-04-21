@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import API_BASE_URL from './apiBase';
 
 const SearchIcon = () => (
   <svg width="70" height="70" viewBox="0 0 70 70" fill="none">
@@ -63,7 +64,7 @@ function HomePage({ onSearchComplete,inputTerm }) {
   const startPolling = () => {
     pollRef.current = setInterval(async () => {
       try {
-        const res = await axios.get('/api/fetch-status');
+        const res = await axios.get(`${API_BASE_URL}/api/fetch-status`);
         const p = res.data;
         setProgress(p);
 
@@ -97,7 +98,7 @@ function HomePage({ onSearchComplete,inputTerm }) {
     termRef.current = term;
 
     try {
-      await axios.post('/api/trigger-fetch',
+      await axios.post(`${API_BASE_URL}/api/trigger-fetch`,
         { searchTerm: term, category, sortBy },
         { timeout: 10000 }
       );
